@@ -33,8 +33,8 @@ python -m http.server 8080
 
 ## 2台対戦の設定
 
-CPU対戦とローカル対戦は設定不要でオフライン動作します。2台対戦だけSupabase Realtimeを使用します。ローカル開発では `.env.example` を参考に `.env.local` と `config.js` を用意します。公開時はGitHub Actions Secretsの `SUPABASE_URL` と `SUPABASE_PUBLISHABLE_KEY` から `config.js` が自動生成されます。Database passwordやSecret keyは使用しません。
+CPU対戦とローカル対戦は設定不要でオフライン動作します。2台対戦だけSupabase Realtimeを使用します。ブラウザ公開用の `config.js` にはProject URLとPublishable keyだけを設定します。Database passwordやSecret keyは使用しません。
 
 ## GitHub Pages
 
-リポジトリ設定の Pages で Source を `GitHub Actions` にします。PRを `main` にマージすると、同梱のワークフローが自動公開します。
+GitHub Pagesは `main` ブランチのリポジトリ直下を直接公開します。
