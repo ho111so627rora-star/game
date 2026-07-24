@@ -1,284 +1,86 @@
+import * as THREE from 'three';
+import { OrbitControls } from '../vendor/OrbitControls.js';
 import { coordOf } from './core.js';
+
+const BALL_STEP = 0.72;
+const BALL_Y = 0.34;
 
 export class BoardRenderer {
   constructor(canvas, onPick) {
-    this.c = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.onPick = onPick;
-    this.yaw = -0.72;
-    this.pitch = 0.68;
-    this.zoom = 1;
-    this.hover = -1;
-    this.transparent = false;
-    this.last = -1;
-    this.win = [];
-    this.drag = null;
-    this.bind();
-    new ResizeObserver(() => this.draw()).observe(canvas);
+    this.c = canvas; this.onPick = onPick; this.hover = -1; this.transparent = false;
+    this.last = -1; this.win = []; this.pointerDown = null;
+    this.raycaster = new THREE.Raycaster(); this.pointer = new THREE.Vector2(); this.clock = new THREE.Clock();
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.12;
+    this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.scene = new THREE.Scene(); this.scene.fog = new THREE.Fog(0xfff3cf, 10, 19);
+    this.camera = new THREE.PerspectiveCamera(34, 1, 0.1, 50);
+    this.controls = new OrbitControls(this.camera, canvas);
+    Object.assign(this.controls, { enableDamping: true, dampingFactor: 0.075, enablePan: false, minDistance: 6.2, maxDistance: 13, minPolarAngle: 0.42, maxPolarAngle: 1.34 });
+    this.controls.target.set(0, 1.25, 0);
+    this.staticGroup = new THREE.Group(); this.pieceGroup = new THREE.Group(); this.markerGroup = new THREE.Group();
+    this.hitTargets = []; this.scene.add(this.staticGroup, this.pieceGroup, this.markerGroup);
+    this.makeMaterials(); this.makeScene(); this.reset(); this.bind();
+    new ResizeObserver(() => this.resize()).observe(canvas); this.resize(); this.animate();
   }
 
-  reset() {
-    this.yaw = -0.72;
-    this.pitch = 0.68;
-    this.zoom = 1;
-    this.draw();
+  makeMaterials() {
+    this.blackMaterial = new THREE.MeshPhysicalMaterial({ color: 0x18233d, roughness: 0.2, metalness: 0.18, clearcoat: 0.9, clearcoatRoughness: 0.16 });
+    this.whiteMaterial = new THREE.MeshPhysicalMaterial({ color: 0xf8fbff, roughness: 0.23, metalness: 0.05, clearcoat: 0.85, clearcoatRoughness: 0.2 });
+    this.ghostBlackMaterial = this.blackMaterial.clone(); this.ghostWhiteMaterial = this.whiteMaterial.clone();
+    for (const m of [this.ghostBlackMaterial, this.ghostWhiteMaterial]) { m.transparent = true; m.opacity = 0.42; m.depthWrite = false; }
+    this.rodMaterial = new THREE.MeshStandardMaterial({ color: 0xd8aa62, metalness: 0.72, roughness: 0.24 });
+    this.rodHoverMaterial = new THREE.MeshStandardMaterial({ color: 0xffdf4e, emissive: 0x9c5b00, emissiveIntensity: 0.55, metalness: 0.55, roughness: 0.2 });
+    this.rodFullMaterial = new THREE.MeshStandardMaterial({ color: 0x8f969f, metalness: 0.45, roughness: 0.5 });
   }
 
-  setState(game) {
-    this.game = game;
-    this.last = game.history.at(-1)?.cell ?? -1;
-    this.win = game.winningLine || [];
-    if (this.hover >= 0 && game.heights[this.hover] >= 4) this.hover = -1;
-    this.draw();
-  }
-
-  project(x, y, z) {
-    x -= 1.5;
-    y -= 1.5;
-    z -= 1.5;
-    const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
-    const cp = Math.cos(this.pitch), sp = Math.sin(this.pitch);
-    const horizontal = x * cy - y * sy;
-    const away = x * sy + y * cy;
-    // Positive z must always travel upward on screen. The old minus sign here
-    // made the rods appear to hang below the board.
-    const vertical = away * cp + z * sp;
-    const depth = away * sp - z * cp;
-    const scale = Math.min(this.c.clientWidth, this.c.clientHeight) * 0.125 * this.zoom;
-    return {
-      x: this.c.clientWidth / 2 + horizontal * scale,
-      y: this.c.clientHeight * 0.56 - vertical * scale,
-      depth,
-      r: scale * 0.28,
-    };
-  }
-
-  rodInfo(rod) {
-    const x = rod % 4, y = Math.floor(rod / 4);
-    return {
-      rod, x, y,
-      lo: this.project(x, y, -0.32),
-      hi: this.project(x, y, 3.35),
-      target: this.project(x, y, Math.min(this.game?.heights[rod] ?? 0, 3)),
-      depth: this.project(x, y, 1.5).depth,
-    };
-  }
-
-  rods() {
-    return Array.from({ length: 16 }, (_, rod) => this.rodInfo(rod));
-  }
-
-  pointSegmentDistance(px, py, a, b) {
-    const vx = b.x - a.x, vy = b.y - a.y;
-    const t = Math.max(0, Math.min(1, ((px - a.x) * vx + (py - a.y) * vy) / (vx * vx + vy * vy)));
-    return Math.hypot(px - (a.x + t * vx), py - (a.y + t * vy));
-  }
-
-  pick(px, py) {
-    let best = null;
-    for (const q of this.rods()) {
-      if (this.game?.heights[q.rod] >= 4) continue;
-      const capDistance = Math.hypot(px - q.target.x, py - q.target.y);
-      const rodDistance = this.pointSegmentDistance(px, py, q.lo, q.hi);
-      const distance = Math.min(capDistance * 0.7, rodDistance);
-      if (distance < Math.max(24, q.target.r * 1.35) && (!best || distance < best.distance)) {
-        best = { rod: q.rod, distance };
-      }
+  makeScene() {
+    const hemi = new THREE.HemisphereLight(0xfff9e9, 0x806246, 2.2);
+    const sun = new THREE.DirectionalLight(0xffffff, 3.6); sun.position.set(5, 9, 6); sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = sun.shadow.camera.bottom = -5; sun.shadow.camera.right = sun.shadow.camera.top = 5; sun.shadow.bias = -0.00025;
+    const fill = new THREE.PointLight(0xffc85c, 15, 14, 2); fill.position.set(-4, 4, -3); this.scene.add(hemi, sun, fill);
+    const side = new THREE.MeshStandardMaterial({ color: 0xc77a2a, roughness: 0.48 });
+    const board = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.36, 4.7), [side, side, new THREE.MeshStandardMaterial({ color: 0xf2b844, roughness: 0.34 }), side, side, side]);
+    board.position.y = -0.2; board.castShadow = board.receiveShadow = true; this.staticGroup.add(board);
+    const gridPoints = [];
+    for (let i = -2; i <= 2; i++) { gridPoints.push(new THREE.Vector3(i, 0.006, -2), new THREE.Vector3(i, 0.006, 2), new THREE.Vector3(-2, 0.006, i), new THREE.Vector3(2, 0.006, i)); }
+    this.staticGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gridPoints), new THREE.LineBasicMaterial({ color: 0x9a5a22, transparent: true, opacity: 0.68 })));
+    const rodGeometry = new THREE.CylinderGeometry(0.047, 0.055, 3.05, 18), capGeometry = new THREE.SphereGeometry(0.085, 18, 12);
+    const hitGeometry = new THREE.CylinderGeometry(0.29, 0.29, 3.25, 8), padGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.025, 28);
+    for (let rod = 0; rod < 16; rod++) {
+      const { x, z } = this.worldRod(rod), mesh = new THREE.Mesh(rodGeometry, this.rodMaterial); mesh.position.set(x, 1.48, z); mesh.castShadow = true; mesh.userData.rod = rod;
+      const cap = new THREE.Mesh(capGeometry, this.rodMaterial); cap.position.set(x, 3.03, z); cap.userData.rod = rod;
+      const pad = new THREE.Mesh(padGeometry, new THREE.MeshStandardMaterial({ color: 0x9f6328, roughness: 0.5 })); pad.position.set(x, 0.025, z); pad.userData.rod = rod;
+      const hit = new THREE.Mesh(hitGeometry, new THREE.MeshBasicMaterial({ visible: false })); hit.position.set(x, 1.48, z); hit.userData.rod = rod;
+      this.staticGroup.add(mesh, cap, pad, hit); this.hitTargets.push(hit, pad);
     }
-    return best?.rod ?? -1;
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(6.5, 64), new THREE.ShadowMaterial({ color: 0x5e3e1d, opacity: 0.14 }));
+    floor.rotation.x = -Math.PI / 2; floor.position.y = -0.4; floor.receiveShadow = true; this.scene.add(floor);
   }
 
-  bind() {
-    const pos = e => {
-      const r = this.c.getBoundingClientRect();
-      return { x: e.clientX - r.left, y: e.clientY - r.top };
-    };
-    this.c.addEventListener('pointerdown', e => {
-      this.c.setPointerCapture(e.pointerId);
-      const p = pos(e);
-      this.hover = this.pick(p.x, p.y);
-      this.drag = { ...p, ox: e.clientX, oy: e.clientY, moved: false };
-      this.draw();
-    });
-    this.c.addEventListener('pointermove', e => {
-      const p = pos(e);
-      if (this.drag) {
-        const dx = e.clientX - this.drag.ox, dy = e.clientY - this.drag.oy;
-        if (Math.abs(dx) + Math.abs(dy) > 5) this.drag.moved = true;
-        this.yaw += dx * 0.008;
-        this.pitch = Math.max(0.24, Math.min(1.22, this.pitch + dy * 0.006));
-        this.drag.ox = e.clientX;
-        this.drag.oy = e.clientY;
-      } else {
-        this.hover = this.pick(p.x, p.y);
-      }
-      this.draw();
-    });
-    this.c.addEventListener('pointerleave', () => {
-      if (!this.drag) { this.hover = -1; this.draw(); }
-    });
-    this.c.addEventListener('pointerup', e => {
-      const p = pos(e);
-      if (this.drag && !this.drag.moved) this.onPick(this.pick(p.x, p.y));
-      this.drag = null;
-    });
-    this.c.addEventListener('wheel', e => {
-      e.preventDefault();
-      this.zoom = Math.max(0.68, Math.min(1.5, this.zoom * (1 - e.deltaY * 0.001)));
-      this.draw();
-    }, { passive: false });
+  worldRod(rod) { return { x: rod % 4 - 1.5, z: Math.floor(rod / 4) - 1.5 }; }
+  worldCell(cell) { const { x, y, z } = coordOf(cell); return new THREE.Vector3(x - 1.5, BALL_Y + z * BALL_STEP, y - 1.5); }
+  reset() { this.camera.position.set(6.7, 5.4, 7.2); this.controls.target.set(0, 1.18, 0); this.controls.update(); }
+  resize() { const width = Math.max(1, this.c.clientWidth), height = Math.max(1, this.c.clientHeight); this.renderer.setSize(width, height, false); this.camera.aspect = width / height; this.camera.updateProjectionMatrix(); }
+  setState(game) { this.game = game; this.last = game.history.at(-1)?.cell ?? -1; this.win = game.winningLine || []; if (this.hover >= 0 && game.heights[this.hover] >= 4) this.hover = -1; this.rebuildPieces(); }
+  clearGroup(group) { while (group.children.length) { const child = group.children.pop(); child.geometry?.dispose(); if (child.material && ![this.blackMaterial, this.whiteMaterial, this.ghostBlackMaterial, this.ghostWhiteMaterial].includes(child.material)) child.material.dispose?.(); } }
+  makeBall(player, ghost = false) { let material = ghost ? (player === 1 ? this.ghostBlackMaterial : this.ghostWhiteMaterial) : (player === 1 ? this.blackMaterial : this.whiteMaterial); if (!ghost && this.transparent) { material = material.clone(); material.transparent = true; material.opacity = 0.62; material.depthWrite = false; } const ball = new THREE.Mesh(new THREE.SphereGeometry(0.31, 32, 22), material); ball.castShadow = !ghost; ball.receiveShadow = true; return ball; }
+
+  rebuildPieces() {
+    if (!this.game) return; this.clearGroup(this.pieceGroup); this.clearGroup(this.markerGroup);
+    for (let i = 0; i < 64; i++) { const player = this.game.cells[i]; if (!player) continue; const ball = this.makeBall(player); ball.position.copy(this.worldCell(i)); this.pieceGroup.add(ball); if (i === this.last || this.win.includes(i)) this.addBallMarker(ball.position, this.win.includes(i) ? 0xffd21f : 0x52c7ff); }
+    if (this.hover >= 0 && this.game.heights[this.hover] < 4) { const { x, z } = this.worldRod(this.hover), ghost = this.makeBall(this.game.turn, true); ghost.position.set(x, BALL_Y + this.game.heights[this.hover] * BALL_STEP, z); this.pieceGroup.add(ghost); const ring = new THREE.Mesh(new THREE.TorusGeometry(0.41, 0.045, 12, 48), new THREE.MeshBasicMaterial({ color: 0xffc928, transparent: true, opacity: 0.9 })); ring.rotation.x = Math.PI / 2; ring.position.set(x, 0.035, z); this.markerGroup.add(ring); }
+    if (this.win.length === 4) this.addWinningBeam(); this.updateRodMaterials();
   }
 
-  path(points) {
-    this.ctx.beginPath();
-    points.forEach((p, i) => i ? this.ctx.lineTo(p.x, p.y) : this.ctx.moveTo(p.x, p.y));
-    this.ctx.closePath();
-  }
-
-  drawBase() {
-    const corners = [[-0.5, -0.5], [3.5, -0.5], [3.5, 3.5], [-0.5, 3.5]];
-    const top = corners.map(([x, y]) => this.project(x, y, -0.42));
-    const bottom = corners.map(([x, y]) => this.project(x, y, -0.68));
-
-    const shadow = bottom.map(p => ({ x: p.x + 8, y: p.y + 13 }));
-    this.path(shadow);
-    this.ctx.fillStyle = '#5d421f33';
-    this.ctx.fill();
-
-    const sides = corners.map((_, i) => {
-      const n = (i + 1) % 4;
-      return { points: [top[i], top[n], bottom[n], bottom[i]], depth: (top[i].depth + top[n].depth) / 2 };
-    }).sort((a, b) => a.depth - b.depth);
-    for (const side of sides) {
-      this.path(side.points);
-      this.ctx.fillStyle = '#bf7828';
-      this.ctx.fill();
-      this.ctx.strokeStyle = '#8d551d';
-      this.ctx.lineWidth = 2;
-      this.ctx.stroke();
-    }
-
-    this.path(top);
-    const gradient = this.ctx.createLinearGradient(0, Math.min(...top.map(p => p.y)), 0, Math.max(...top.map(p => p.y)));
-    gradient.addColorStop(0, '#ffd56a');
-    gradient.addColorStop(1, '#e7a53a');
-    this.ctx.fillStyle = gradient;
-    this.ctx.fill();
-    this.ctx.strokeStyle = '#89531d';
-    this.ctx.lineWidth = 5;
-    this.ctx.stroke();
-
-    // A visible 4×4 grid anchors every rod to a clear square.
-    this.ctx.lineWidth = 1.8;
-    this.ctx.strokeStyle = '#9b652c88';
-    for (let i = 0; i <= 4; i++) {
-      for (const [a, b] of [
-        [this.project(i - 0.5, -0.5, -0.405), this.project(i - 0.5, 3.5, -0.405)],
-        [this.project(-0.5, i - 0.5, -0.405), this.project(3.5, i - 0.5, -0.405)],
-      ]) {
-        this.ctx.beginPath();
-        this.ctx.moveTo(a.x, a.y);
-        this.ctx.lineTo(b.x, b.y);
-        this.ctx.stroke();
-      }
-    }
-  }
-
-  sphere(p, player, alpha = 1, mark = false) {
-    const g = this.ctx.createRadialGradient(p.x - p.r * 0.35, p.y - p.r * 0.4, p.r * 0.08, p.x, p.y, p.r);
-    if (player === 1) {
-      g.addColorStop(0, `rgba(114,133,166,${alpha})`);
-      g.addColorStop(0.55, `rgba(34,48,75,${alpha})`);
-      g.addColorStop(1, `rgba(9,17,33,${alpha})`);
-    } else {
-      g.addColorStop(0, `rgba(255,255,255,${alpha})`);
-      g.addColorStop(0.6, `rgba(230,238,245,${alpha})`);
-      g.addColorStop(1, `rgba(155,171,190,${alpha})`);
-    }
-    this.ctx.beginPath();
-    this.ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    this.ctx.fillStyle = g;
-    this.ctx.fill();
-    this.ctx.lineWidth = mark ? 5 : player === 2 ? 2 : 1.5;
-    this.ctx.strokeStyle = mark ? '#ffbd27' : player === 2 ? '#64748b' : '#101827';
-    this.ctx.setLineDash(player === 2 ? [5, 3] : []);
-    this.ctx.stroke();
-    this.ctx.setLineDash([]);
-  }
-
-  drawRod(o) {
-    const full = this.game.heights[o.rod] >= 4;
-    const active = o.rod === this.hover && !full;
-    this.ctx.beginPath();
-    this.ctx.moveTo(o.lo.x, o.lo.y);
-    this.ctx.lineTo(o.hi.x, o.hi.y);
-    this.ctx.lineCap = 'round';
-    this.ctx.lineWidth = active ? 7 : 4.5;
-    this.ctx.strokeStyle = full ? '#8d9297' : active ? '#ffd124' : '#715035';
-    this.ctx.stroke();
-
-    this.ctx.beginPath();
-    this.ctx.arc(o.hi.x, o.hi.y, active ? 7 : 5, 0, Math.PI * 2);
-    this.ctx.fillStyle = active ? '#ffe66b' : '#9a6c46';
-    this.ctx.fill();
-
-    if (active) {
-      this.ctx.beginPath();
-      this.ctx.arc(o.target.x, o.target.y, o.target.r * 1.28, 0, Math.PI * 2);
-      this.ctx.strokeStyle = '#ffbf16';
-      this.ctx.lineWidth = 4;
-      this.ctx.setLineDash([7, 5]);
-      this.ctx.stroke();
-      this.ctx.setLineDash([]);
-    }
-  }
-
-  draw() {
-    const dpr = Math.min(devicePixelRatio, 2), w = this.c.clientWidth, h = this.c.clientHeight;
-    if (this.c.width !== w * dpr || this.c.height !== h * dpr) {
-      this.c.width = w * dpr;
-      this.c.height = h * dpr;
-    }
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this.ctx.clearRect(0, 0, w, h);
-    if (!this.game) return;
-
-    this.drawBase();
-    const objects = [];
-    for (const q of this.rods()) {
-      objects.push({ ...q, type: 'rod' });
-      for (let z = 0; z < this.game.heights[q.rod]; z++) {
-        const i = q.x + q.y * 4 + z * 16;
-        const p = this.project(q.x, q.y, z);
-        objects.push({ depth: p.depth, type: 'ball', p, player: this.game.cells[i], i });
-      }
-      if (this.game.heights[q.rod] < 4 && q.rod === this.hover) {
-        const p = this.project(q.x, q.y, this.game.heights[q.rod]);
-        objects.push({ depth: p.depth - 0.01, type: 'ghost', p, player: this.game.turn });
-      }
-    }
-    objects.sort((a, b) => a.depth - b.depth);
-    for (const o of objects) {
-      if (o.type === 'rod') this.drawRod(o);
-      else this.sphere(o.p, o.player, o.type === 'ghost' ? 0.48 : this.transparent ? 0.67 : 1, o.i === this.last || this.win.includes(o.i));
-    }
-
-    if (this.win.length) {
-      const a = this.project(...Object.values(coordOf(this.win[0])));
-      const b = this.project(...Object.values(coordOf(this.win[3])));
-      this.ctx.beginPath();
-      this.ctx.moveTo(a.x, a.y);
-      this.ctx.lineTo(b.x, b.y);
-      this.ctx.strokeStyle = '#ffcf24';
-      this.ctx.lineWidth = 9;
-      this.ctx.lineCap = 'round';
-      this.ctx.stroke();
-    }
-
-    // A tiny fixed cue removes ambiguity even after the camera is rotated.
-    this.ctx.fillStyle = '#6d5838bb';
-    this.ctx.font = '700 13px system-ui';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('↑ 棒は上へ伸びています', w / 2, h - 30);
-  }
+  addBallMarker(position, color) { const marker = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.035, 10, 40), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, depthTest: false })); marker.position.copy(position); marker.lookAt(this.camera.position); marker.renderOrder = 5; this.markerGroup.add(marker); }
+  addWinningBeam() { const a = this.worldCell(this.win[0]), b = this.worldCell(this.win[3]), direction = new THREE.Vector3().subVectors(b, a); const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, direction.length() + 0.6, 16), new THREE.MeshBasicMaterial({ color: 0xffd21f, transparent: true, opacity: 0.9, depthTest: false })); beam.position.copy(a).add(b).multiplyScalar(0.5); beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize()); beam.renderOrder = 6; this.markerGroup.add(beam); }
+  updateRodMaterials() { for (const object of this.staticGroup.children) { const rod = object.userData.rod; if (rod == null || !object.isMesh || !object.geometry.type.includes('Cylinder') || object.material.visible === false) continue; object.material = this.game.heights[rod] >= 4 ? this.rodFullMaterial : rod === this.hover ? this.rodHoverMaterial : this.rodMaterial; } }
+  setPointer(event) { const rect = this.c.getBoundingClientRect(); this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; }
+  pick(event) { if (!this.game) return -1; this.setPointer(event); this.raycaster.setFromCamera(this.pointer, this.camera); const hits = this.raycaster.intersectObjects(this.hitTargets, false); return hits.map(hit => hit.object.userData.rod).find(rod => this.game.heights[rod] < 4) ?? -1; }
+  bind() { this.c.addEventListener('pointerdown', e => { this.pointerDown = { x: e.clientX, y: e.clientY }; }); this.c.addEventListener('pointermove', e => { if (this.pointerDown) return; const rod = this.pick(e); if (rod !== this.hover) { this.hover = rod; this.rebuildPieces(); } }); this.c.addEventListener('pointerleave', () => { if (!this.pointerDown && this.hover !== -1) { this.hover = -1; this.rebuildPieces(); } }); this.c.addEventListener('pointerup', e => { if (!this.pointerDown) return; const distance = Math.hypot(e.clientX - this.pointerDown.x, e.clientY - this.pointerDown.y); this.pointerDown = null; if (distance < 7) this.onPick(this.pick(e)); }); }
+  draw() { this.rebuildPieces(); }
+  animate() { requestAnimationFrame(() => this.animate()); const time = this.clock.getElapsedTime(); for (const child of this.markerGroup.children) if (child.geometry?.type === 'TorusGeometry') child.material.opacity = 0.68 + Math.sin(time * 4) * 0.22; this.controls.update(); this.renderer.render(this.scene, this.camera); }
 }
