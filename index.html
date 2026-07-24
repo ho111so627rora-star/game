@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#f7c94b">
+  <title>キューブならべ！</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <button id="homeBtn" class="icon-btn" aria-label="メニュー">⌂</button>
+      <h1>キューブならべ！<small>4つ そろえよう</small></h1>
+      <button id="soundBtn" class="icon-btn" aria-label="音を切り替える">🔊</button>
+    </header>
+
+    <section id="game" class="game" aria-label="立体四目ならべ盤面">
+      <div class="status-card">
+        <span id="turnPiece" class="mini-piece dark"></span>
+        <strong id="statusText">くろ の ばん</strong>
+        <span id="thinking" hidden>かんがえ中…</span>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="board" aria-label="4かける4かける4のゲーム盤"></canvas>
+        <div class="canvas-tip">棒をタップ！ ・ スワイプで回転</div>
+      </div>
+      <nav class="game-actions">
+        <button id="undoBtn">↶<span><ruby>待<rt>ま</rt></ruby>った</span></button>
+        <button id="resetViewBtn">◎<span><ruby>正面<rt>しょうめん</rt></ruby></span></button>
+        <button id="transparentBtn">◉<span>すける</span></button>
+        <button id="newBtn">↻<span>もう一局</span></button>
+      </nav>
+    </section>
+  </main>
+
+  <dialog id="menuDialog" class="modal" open>
+    <form method="dialog" class="panel">
+      <div class="mascot" aria-hidden="true">● ● ● ●</div>
+      <h2>キューブならべ！</h2>
+      <p>タテ・ヨコ・ななめに<br><b>4つ</b> ならべよう！</p>
+      <fieldset>
+        <legend>だれと あそぶ？</legend>
+        <label><input type="radio" name="mode" value="cpu" checked><span>🤖<b>コンピュータ</b></span></label>
+        <label><input type="radio" name="mode" value="local"><span>👫<b>ふたり</b></span></label>
+      </fieldset>
+      <div id="cpuOptions">
+        <fieldset>
+          <legend>つよさ</legend>
+          <label><input type="radio" name="difficulty" value="easy"><span>🙂<b>やさしい</b></span></label>
+          <label><input type="radio" name="difficulty" value="normal" checked><span>😎<b>ふつう</b></span></label>
+          <label><input type="radio" name="difficulty" value="hard"><span>🔥<b>つよい</b></span></label>
+        </fieldset>
+        <fieldset>
+          <legend>どっちで あそぶ？</legend>
+          <label><input type="radio" name="side" value="1" checked><span><i class="mini-piece dark"></i><b>せんて</b></span></label>
+          <label><input type="radio" name="side" value="2"><span><i class="mini-piece light"></i><b>あとて</b></span></label>
+        </fieldset>
+      </div>
+      <button id="startBtn" class="primary" value="start">あそぶ！ ▶</button>
+      <button id="tutorialBtn" class="text-btn" type="button">？ あそびかた</button>
+    </form>
+  </dialog>
+
+  <dialog id="resultDialog" class="modal">
+    <form method="dialog" class="panel result-panel">
+      <div id="resultEmoji" class="result-emoji">🎉</div>
+      <h2 id="resultTitle">やったね！</h2>
+      <p id="resultText"></p>
+      <button id="againBtn" class="primary" value="again">もう一局 ↻</button>
+      <button id="resultMenuBtn" class="text-btn" value="menu">メニューへ</button>
+    </form>
+  </dialog>
+
+  <dialog id="tutorialDialog" class="modal">
+    <form method="dialog" class="panel tutorial-panel">
+      <button class="close" value="close" aria-label="閉じる">×</button>
+      <h2>あそびかた</h2>
+      <div class="tutorial-art"><span>👇</span><div>●<br>│<br>│</div><b>→</b><div>●<br>●<br>│</div></div>
+      <p>すきな <b>棒</b>を タップ。<br>ボールが コトン！</p>
+      <div class="four">●―●―●―●</div>
+      <p>どの<ruby>方向<rt>ほうこう</rt></ruby>でも<br><b>4つ ならべたら かち！</b></p>
+      <button class="primary" value="close">わかった！</button>
+    </form>
+  </dialog>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
