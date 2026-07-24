@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#f7c94b">
   <title>キューブならべ！</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="online.css">
 </head>
 <body>
   <main class="app">
@@ -43,6 +44,7 @@
         <legend>だれと あそぶ？</legend>
         <label><input type="radio" name="mode" value="cpu" checked><span>🤖<b>コンピュータ</b></span></label>
         <label><input type="radio" name="mode" value="local"><span>👫<b>ふたり</b></span></label>
+        <label><input type="radio" name="mode" value="online"><span>📱<b>2台で</b></span></label>
       </fieldset>
       <div id="cpuOptions">
         <fieldset>
@@ -56,6 +58,15 @@
           <label><input type="radio" name="side" value="1" checked><span><i class="mini-piece dark"></i><b>せんて</b></span></label>
           <label><input type="radio" name="side" value="2"><span><i class="mini-piece light"></i><b>あとて</b></span></label>
         </fieldset>
+      </div>
+      <div id="onlineOptions" hidden>
+        <p class="online-lead">合言葉で つながろう！</p>
+        <button id="createRoomBtn" class="room-btn" type="button">✨ 部屋をつくる</button>
+        <div class="join-row">
+          <input id="roomCodeInput" maxlength="6" autocomplete="off" placeholder="合言葉 6文字" aria-label="合言葉">
+          <button id="joinRoomBtn" class="room-btn" type="button">入る</button>
+        </div>
+        <div id="roomStatus" class="room-status" aria-live="polite"></div>
       </div>
       <button id="startBtn" class="primary" value="start">あそぶ！ ▶</button>
       <button id="tutorialBtn" class="text-btn" type="button">？ あそびかた</button>
@@ -84,6 +95,7 @@
     </form>
   </dialog>
 
+  <script src="config.js"></script>
   <script type="importmap">
     {"imports":{"three":"./vendor/three.module.min.js"}}
   </script>
