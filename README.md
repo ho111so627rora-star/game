@@ -16,6 +16,7 @@ python -m http.server 8080
 
 - 4×4×4、全76勝利ライン、重力ルール
 - ローカル2人対戦／CPU対戦（やさしい・ふつう・つよい）
+- Supabase Realtimeによる、6文字の合言葉を使った2台対戦
 - CPUはブラウザ内の反復深化・ミニマックス・αβ枝刈り（Web Worker）
 - ドラッグ／スワイプ回転、ホイールズーム、ゴースト球
 - 待った、透過表示、直前手と勝利ラインの表示
@@ -28,6 +29,11 @@ python -m http.server 8080
 - `src/renderer.js`: Canvas 3D投影と操作
 - `src/audio.js`: Web Audio効果音
 - `src/main.js`: UIとゲーム進行
+- `src/online.js`: 合言葉ルームとRealtime同期
+
+## 2台対戦の設定
+
+CPU対戦とローカル対戦は設定不要でオフライン動作します。2台対戦だけSupabase Realtimeを使用します。ローカル開発では `.env.example` を参考に `.env.local` と `config.js` を用意します。公開時はGitHub Actions Secretsの `SUPABASE_URL` と `SUPABASE_PUBLISHABLE_KEY` から `config.js` が自動生成されます。Database passwordやSecret keyは使用しません。
 
 ## GitHub Pages
 
