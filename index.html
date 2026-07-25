@@ -13,7 +13,7 @@
     <header>
       <button id="homeBtn" class="icon-btn" aria-label="メニュー">⌂</button>
       <h1>キューブならべ！<small>4つ そろえよう</small></h1>
-      <button id="soundBtn" class="icon-btn" aria-label="音を切り替える">🔊</button>
+      <button id="soundBtn" class="icon-btn" aria-label="BGMと効果音">🔊</button>
     </header>
 
     <section id="game" class="game" aria-label="立体四目ならべ盤面">
@@ -67,6 +67,10 @@
           <button id="joinRoomBtn" class="room-btn" type="button">入る</button>
         </div>
         <div id="roomStatus" class="room-status" aria-live="polite"></div>
+        <div id="inviteCard" class="invite-card" hidden>
+          <img id="roomQr" alt="対戦ルーム参加用QRコード">
+          <button id="shareRoomBtn" class="share-btn" type="button">📤 相手に送る</button>
+        </div>
       </div>
       <button id="startBtn" class="primary" value="start">あそぶ！ ▶</button>
       <button id="tutorialBtn" class="text-btn" type="button">？ あそびかた</button>
