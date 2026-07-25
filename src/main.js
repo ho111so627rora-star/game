@@ -1,5 +1,5 @@
 import { createGame, play, undo, serialize, BLACK, WHITE } from './core.js';
-import { BoardRenderer } from './renderer.js';
+import { BoardRenderer } from './renderer.js?v=dark-ui-2';
 import { AudioManager } from './audio.js';
 import { OnlineSession, createRoomCode } from './online.js';
 import { toDataURL } from '../vendor/qrcode.js';
