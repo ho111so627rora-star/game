@@ -1,6 +1,6 @@
 import { createGame, play, undo, serialize, BLACK, WHITE } from './core.js';
 import { BoardRenderer } from './renderer.js?v=gold-silver-1';
-import { AudioManager } from './audio.js';
+import { AudioManager } from './audio.js?v=home-bgm-1';
 import { OnlineSession, createRoomCode } from './online.js';
 import { toDataURL } from '../vendor/qrcode.js';
 
@@ -145,4 +145,4 @@ $('#tutorialBtn').onclick = () => $('#tutorialDialog').showModal();
 renderer.setState(game);
 const invitedRoom = new URLSearchParams(location.search).get('room')?.toUpperCase();
 if (/^[2-9A-HJ-NP-Z]{6}$/.test(invitedRoom || '')) { document.querySelector('input[name="mode"][value="online"]').checked = true; $('#roomCodeInput').value = invitedRoom; updateModeOptions(); menu.showModal(); setTimeout(() => joinOnlineRoom(false), 0); }
-else { updateModeOptions(); menu.showModal(); }
+else { updateModeOptions(); menu.showModal(); audio.startBgm(); }
