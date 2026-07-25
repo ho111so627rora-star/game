@@ -13,9 +13,9 @@ export class BoardRenderer {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.12;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 0.92;
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.scene = new THREE.Scene(); this.scene.fog = new THREE.Fog(0xfff3cf, 10, 19);
+    this.scene = new THREE.Scene(); this.scene.fog = new THREE.Fog(0x080b10, 9, 18);
     this.camera = new THREE.PerspectiveCamera(34, 1, 0.1, 50);
     this.controls = new OrbitControls(this.camera, canvas);
     Object.assign(this.controls, { enableDamping: true, dampingFactor: 0.075, enablePan: false, minDistance: 6.2, maxDistance: 13, minPolarAngle: 0.42, maxPolarAngle: 1.34 });
@@ -27,36 +27,36 @@ export class BoardRenderer {
   }
 
   makeMaterials() {
-    this.blackMaterial = new THREE.MeshPhysicalMaterial({ color: 0x18233d, roughness: 0.2, metalness: 0.18, clearcoat: 0.9, clearcoatRoughness: 0.16 });
-    this.whiteMaterial = new THREE.MeshPhysicalMaterial({ color: 0xf8fbff, roughness: 0.23, metalness: 0.05, clearcoat: 0.85, clearcoatRoughness: 0.2 });
+    this.blackMaterial = new THREE.MeshPhysicalMaterial({ color: 0x101721, roughness: 0.18, metalness: 0.35, clearcoat: 0.95, clearcoatRoughness: 0.14 });
+    this.whiteMaterial = new THREE.MeshPhysicalMaterial({ color: 0xe5e1d8, roughness: 0.27, metalness: 0.08, clearcoat: 0.7, clearcoatRoughness: 0.22 });
     this.ghostBlackMaterial = this.blackMaterial.clone(); this.ghostWhiteMaterial = this.whiteMaterial.clone();
     for (const m of [this.ghostBlackMaterial, this.ghostWhiteMaterial]) { m.transparent = true; m.opacity = 0.42; m.depthWrite = false; }
-    this.rodMaterial = new THREE.MeshStandardMaterial({ color: 0xd8aa62, metalness: 0.72, roughness: 0.24 });
-    this.rodHoverMaterial = new THREE.MeshStandardMaterial({ color: 0xffdf4e, emissive: 0x9c5b00, emissiveIntensity: 0.55, metalness: 0.55, roughness: 0.2 });
-    this.rodFullMaterial = new THREE.MeshStandardMaterial({ color: 0x8f969f, metalness: 0.45, roughness: 0.5 });
+    this.rodMaterial = new THREE.MeshStandardMaterial({ color: 0x8d98a4, metalness: 0.86, roughness: 0.2 });
+    this.rodHoverMaterial = new THREE.MeshStandardMaterial({ color: 0xe3b86e, emissive: 0x8d520e, emissiveIntensity: 0.75, metalness: 0.7, roughness: 0.16 });
+    this.rodFullMaterial = new THREE.MeshStandardMaterial({ color: 0x424b55, metalness: 0.6, roughness: 0.46 });
   }
 
   makeScene() {
-    const hemi = new THREE.HemisphereLight(0xfff9e9, 0x806246, 2.2);
-    const sun = new THREE.DirectionalLight(0xffffff, 3.6); sun.position.set(5, 9, 6); sun.castShadow = true;
+    const hemi = new THREE.HemisphereLight(0x8ba2b8, 0x080a0d, 1.5);
+    const sun = new THREE.DirectionalLight(0xffe0b0, 3.1); sun.position.set(5, 9, 6); sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = sun.shadow.camera.bottom = -5; sun.shadow.camera.right = sun.shadow.camera.top = 5; sun.shadow.bias = -0.00025;
-    const fill = new THREE.PointLight(0xffc85c, 15, 14, 2); fill.position.set(-4, 4, -3); this.scene.add(hemi, sun, fill);
-    const side = new THREE.MeshStandardMaterial({ color: 0xc77a2a, roughness: 0.48 });
-    const board = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.36, 4.7), [side, side, new THREE.MeshStandardMaterial({ color: 0xf2b844, roughness: 0.34 }), side, side, side]);
+    const fill = new THREE.PointLight(0x4d7da0, 10, 14, 2); fill.position.set(-4, 4, -3); this.scene.add(hemi, sun, fill);
+    const side = new THREE.MeshStandardMaterial({ color: 0x111820, metalness: 0.65, roughness: 0.38 });
+    const board = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.36, 4.7), [side, side, new THREE.MeshStandardMaterial({ color: 0x222b34, metalness: 0.48, roughness: 0.3 }), side, side, side]);
     board.position.y = -0.2; board.castShadow = board.receiveShadow = true; this.staticGroup.add(board);
     const gridPoints = [];
     for (let i = -2; i <= 2; i++) { gridPoints.push(new THREE.Vector3(i, 0.006, -2), new THREE.Vector3(i, 0.006, 2), new THREE.Vector3(-2, 0.006, i), new THREE.Vector3(2, 0.006, i)); }
-    this.staticGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gridPoints), new THREE.LineBasicMaterial({ color: 0x9a5a22, transparent: true, opacity: 0.68 })));
+    this.staticGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gridPoints), new THREE.LineBasicMaterial({ color: 0xa47a43, transparent: true, opacity: 0.62 })));
     const rodGeometry = new THREE.CylinderGeometry(0.047, 0.055, 3.05, 18), capGeometry = new THREE.SphereGeometry(0.085, 18, 12);
     const hitGeometry = new THREE.CylinderGeometry(0.29, 0.29, 3.25, 8), padGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.025, 28);
     for (let rod = 0; rod < 16; rod++) {
       const { x, z } = this.worldRod(rod), mesh = new THREE.Mesh(rodGeometry, this.rodMaterial); mesh.position.set(x, 1.48, z); mesh.castShadow = true; mesh.userData.rod = rod;
       const cap = new THREE.Mesh(capGeometry, this.rodMaterial); cap.position.set(x, 3.03, z); cap.userData.rod = rod;
-      const pad = new THREE.Mesh(padGeometry, new THREE.MeshStandardMaterial({ color: 0x9f6328, roughness: 0.5 })); pad.position.set(x, 0.025, z); pad.userData.rod = rod;
+      const pad = new THREE.Mesh(padGeometry, new THREE.MeshStandardMaterial({ color: 0x50402e, metalness: 0.55, roughness: 0.4 })); pad.position.set(x, 0.025, z); pad.userData.rod = rod;
       const hit = new THREE.Mesh(hitGeometry, new THREE.MeshBasicMaterial({ visible: false })); hit.position.set(x, 1.48, z); hit.userData.rod = rod;
       this.staticGroup.add(mesh, cap, pad, hit); this.hitTargets.push(hit, pad);
     }
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(6.5, 64), new THREE.ShadowMaterial({ color: 0x5e3e1d, opacity: 0.14 }));
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(6.5, 64), new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.42 }));
     floor.rotation.x = -Math.PI / 2; floor.position.y = -0.4; floor.receiveShadow = true; this.scene.add(floor);
   }
 

@@ -1,1 +1,15 @@
-#onlineOptions{margin:8px 0 2px;padding:12px;border:3px solid #8bc7db;border-radius:18px;background:#edfaff}.online-lead{margin:0 0 8px;font-weight:900;color:#31677b}.room-btn{min-height:48px;padding:8px 16px;border:0;border-radius:14px;background:#3aa8c7;color:#fff;font:900 16px inherit;box-shadow:0 4px 0 #247790;cursor:pointer}.join-row{display:flex;gap:8px;margin-top:10px;justify-content:center}.panel .join-row input{position:static;opacity:1;width:165px;min-height:48px;border:3px solid #80bfd3;border-radius:14px;background:#fff;text-align:center;text-transform:uppercase;font:900 16px inherit;letter-spacing:.08em}.room-status{min-height:24px;margin-top:9px;font-size:14px;font-weight:800;color:#31576b;line-height:1.5}.room-code{display:block;margin:6px;font-size:28px;letter-spacing:.16em;color:#174e67;user-select:all}.online-error{color:#b52f3b}.invite-card{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px}.invite-card[hidden]{display:none}.invite-card img{width:132px;height:132px;padding:7px;border:3px solid #67b5cf;border-radius:16px;background:#fff;image-rendering:pixelated}.share-btn{min-height:52px;padding:9px 13px;border:0;border-radius:14px;background:#735dd0;color:#fff;font:900 14px inherit;box-shadow:0 4px 0 #4c3aa1}.share-btn.copied{background:#2fa56e}@media(max-height:720px){.invite-card img{width:96px;height:96px}.invite-card{margin-top:5px}}
+#onlineOptions { margin: 9px 0 2px; padding: 13px; border: 1px solid #344454; border-radius: 10px; background: #0d151d; }
+.online-lead { margin: 0 0 9px; color: #a9bbc9; font-weight: 600; letter-spacing: .06em; }
+.room-btn { min-height: 48px; padding: 8px 16px; border: 1px solid #60788d; border-radius: 8px; background: #263847; color: #e8edf1; font: 650 14px inherit; box-shadow: 0 4px 12px #0006; cursor: pointer; }
+.join-row { display: flex; gap: 8px; margin-top: 10px; justify-content: center; }
+.panel .join-row input { position: static; opacity: 1; width: 165px; min-height: 48px; border: 1px solid #556879; border-radius: 8px; background: #0b1016; color: #f0eee9; text-align: center; text-transform: uppercase; font: 700 15px inherit; letter-spacing: .12em; }
+.panel .join-row input::placeholder { color: #6f7c89; }
+.room-status { min-height: 24px; margin-top: 9px; color: #96a9b8; font-size: 13px; font-weight: 600; line-height: 1.5; }
+.room-code { display: block; margin: 7px; color: #e2ba78; font-size: 27px; letter-spacing: .18em; user-select: all; }
+.online-error { color: #dd7c82; }
+.invite-card { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; }
+.invite-card[hidden] { display: none; }
+.invite-card img { width: 132px; height: 132px; padding: 7px; border: 1px solid #66798a; border-radius: 8px; background: #fff; image-rendering: pixelated; }
+.share-btn { min-height: 52px; padding: 9px 13px; border: 1px solid #746994; border-radius: 8px; background: #40385e; color: #eeeaf7; font: 650 13px inherit; box-shadow: 0 4px 12px #0006; }
+.share-btn.copied { background: #285b49; }
+@media (max-height: 720px) { .invite-card img { width: 96px; height: 96px; } .invite-card { margin-top: 5px; } }
