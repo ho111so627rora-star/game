@@ -1,7 +1,7 @@
-const CACHE = 'cube-four-feature-suite-1';
+const CACHE = 'cube-four-finish-mode-1';
 const SHELL = [
-  './', './index.html', './styles.css?v=gold-silver-1', './online.css?v=gold-silver-1',
-  './src/main.js?v=feature-suite-1', './src/core.js', './src/renderer.js?v=feature-suite-1',
+  './', './index.html', './styles.css?v=finish-mode-1', './online.css?v=gold-silver-1',
+  './src/main.js?v=finish-mode-1', './src/core.js', './src/challenges.js?v=finish-mode-1', './src/renderer.js?v=feature-suite-1',
   './src/audio.js?v=home-bgm-1', './src/online.js?v=feature-suite-1', './src/ai-worker.js',
   './vendor/three.module.min.js', './vendor/OrbitControls.js', './vendor/qrcode.js', './vendor/supabase.js',
   './public/audio/warning-sign.mp3', './public/icons/cube-four.svg', './manifest.webmanifest?v=feature-suite-1', './config.js'
