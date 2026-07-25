@@ -2,6 +2,7 @@ import { createGame, play, undo, serialize, BLACK, WHITE } from './core.js';
 import { BoardRenderer } from './renderer.js';
 import { AudioManager } from './audio.js';
 import { OnlineSession, createRoomCode } from './online.js';
+import { toDataURL } from '../vendor/qrcode.js';
 
 const $ = selector => document.querySelector(selector);
 const menu = $('#menuDialog'), result = $('#resultDialog'), thinking = $('#thinking');
@@ -40,24 +41,40 @@ async function start() {
   if (mode === 'online') return;
   await online.leave();
   difficulty = selected('difficulty'); human = Number(selected('side'));
-  game = createGame(); busy = false; thinking.hidden = true; renderer.reset(); update(); menu.close(); audio.click();
+  game = createGame(); busy = false; thinking.hidden = true; renderer.reset(); update(); menu.close(); audio.startBgm(); audio.click();
   if (mode === 'cpu' && human !== BLACK) setTimeout(cpuMove, 350);
 }
 
 function restoreGame(history = []) { const restored = createGame(); for (const move of history) if (play(restored, move.rod) == null) break; return restored; }
 
 async function createOnlineRoom() {
-  mode = 'online'; human = BLACK; onlineGameStarted = false; setRoomStatus('つないでいます…');
-  try { await online.connect(createRoomCode(), 'host'); setRoomStatus(`この合言葉を 相手に見せてね<span class="room-code">${online.code}</span>相手を まっています…`); }
+  mode = 'online'; human = BLACK; onlineGameStarted = false; audio.startBgm(); setRoomStatus('つないでいます…');
+  try { await online.connect(createRoomCode(), 'host'); setRoomStatus(`この合言葉を 相手に見せてね<span class="room-code">${online.code}</span>相手を まっています…`); await renderInvite(online.code); }
   catch (error) { setRoomStatus(error.message, true); }
 }
 
-async function joinOnlineRoom() {
+async function joinOnlineRoom(startAudio = true) {
   const code = $('#roomCodeInput').value.trim().toUpperCase();
   if (!/^[2-9A-HJ-NP-Z]{6}$/.test(code)) { setRoomStatus('6文字の合言葉を 入れてね', true); return; }
-  mode = 'online'; human = WHITE; onlineGameStarted = false; setRoomStatus('部屋を さがしています…');
+  mode = 'online'; human = WHITE; onlineGameStarted = false; if (startAudio) audio.startBgm(); setRoomStatus('部屋を さがしています…');
   try { await online.connect(code, 'guest'); setRoomStatus('相手を さがしています…'); }
   catch (error) { setRoomStatus(error.message, true); }
+}
+
+async function renderInvite(code) {
+  const url = new URL(location.href); url.search = ''; url.hash = ''; url.searchParams.set('room', code);
+  $('#roomQr').src = await toDataURL(url.href, { width: 240, margin: 2, errorCorrectionLevel: 'M', color: { dark: '#173f58', light: '#ffffff' } });
+  $('#shareRoomBtn').dataset.url = url.href; $('#inviteCard').hidden = false;
+}
+
+async function shareRoom() {
+  const button = $('#shareRoomBtn'), url = button.dataset.url;
+  if (!url) return;
+  const data = { title: 'キューブならべ！', text: `合言葉 ${online.code} で対戦しよう！`, url };
+  try {
+    if (navigator.share) await navigator.share(data);
+    else { await navigator.clipboard.writeText(`${data.text}\n${url}`); button.textContent = '✓ コピーしたよ'; button.classList.add('copied'); setTimeout(() => { button.textContent = '📤 相手に送る'; button.classList.remove('copied'); }, 1800); }
+  } catch (error) { if (error.name !== 'AbortError') setRoomStatus('共有できませんでした', true); }
 }
 
 function setRoomStatus(html, error = false) { const element = $('#roomStatus'); element.className = `room-status${error ? ' online-error' : ''}`; element.innerHTML = html; }
@@ -108,12 +125,14 @@ function updateModeOptions() {
   $('#cpuOptions').hidden = selectedMode !== 'cpu';
   $('#onlineOptions').hidden = selectedMode !== 'online';
   $('#startBtn').hidden = selectedMode === 'online';
+  if (selectedMode !== 'online') $('#inviteCard').hidden = true;
   if (selectedMode === 'online' && !online.available) setRoomStatus('オンライン設定を 読みこめませんでした', true);
 }
 
 document.querySelectorAll('input[name="mode"]').forEach(input => input.onchange = updateModeOptions);
 $('#startBtn').onclick = event => { event.preventDefault(); start(); };
 $('#createRoomBtn').onclick = createOnlineRoom; $('#joinRoomBtn').onclick = joinOnlineRoom;
+$('#shareRoomBtn').onclick = shareRoom;
 $('#roomCodeInput').oninput = event => { event.target.value = event.target.value.toUpperCase().replace(/[^2-9A-HJ-NP-Z]/g, ''); };
 $('#homeBtn').onclick = () => { if (!menu.open) menu.showModal(); };
 $('#newBtn').onclick = () => restart(); $('#againBtn').onclick = event => { event.preventDefault(); restart(); };
@@ -121,6 +140,9 @@ $('#resultMenuBtn').onclick = () => setTimeout(() => menu.showModal());
 $('#resetViewBtn').onclick = () => renderer.reset();
 $('#transparentBtn').onclick = () => { renderer.transparent = !renderer.transparent; renderer.draw(); };
 $('#undoBtn').onclick = () => { if (busy || mode === 'online') return; requestId++; thinking.hidden = true; busy = false; undo(game, mode === 'cpu' && game.history.length >= 2 ? 2 : 1); audio.click(); update(); };
-$('#soundBtn').onclick = () => { $('#soundBtn').textContent = audio.toggle() ? '🔊' : '🔇'; };
+$('#soundBtn').onclick = () => { const mode = audio.cycleMode(), labels = { full: ['🔊', 'BGMと効果音'], effects: ['🎵', '効果音だけ'], muted: ['🔇', 'すべて消音'] }; $('#soundBtn').textContent = labels[mode][0]; $('#soundBtn').setAttribute('aria-label', labels[mode][1]); };
 $('#tutorialBtn').onclick = () => $('#tutorialDialog').showModal();
-renderer.setState(game); updateModeOptions(); menu.showModal();
+renderer.setState(game);
+const invitedRoom = new URLSearchParams(location.search).get('room')?.toUpperCase();
+if (/^[2-9A-HJ-NP-Z]{6}$/.test(invitedRoom || '')) { document.querySelector('input[name="mode"][value="online"]').checked = true; $('#roomCodeInput').value = invitedRoom; updateModeOptions(); menu.showModal(); setTimeout(() => joinOnlineRoom(false), 0); }
+else { updateModeOptions(); menu.showModal(); }
