@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="public/icons/cube-four.svg">
   <link rel="manifest" href="manifest.webmanifest?v=feature-suite-1">
   <title>キューブならべ！</title>
-  <link rel="stylesheet" href="styles.css?v=gold-silver-1">
+  <link rel="stylesheet" href="styles.css?v=finish-mode-1">
   <link rel="stylesheet" href="online.css?v=gold-silver-1">
 </head>
 <body>
@@ -53,11 +53,12 @@
       <div class="mascot" aria-hidden="true">● ● ● ●</div>
       <h2>CUBE FOUR</h2>
       <p>64の空間を読み、先に4つをつなぐ。</p>
-      <fieldset>
+      <fieldset class="mode-options">
         <legend>だれと あそぶ？</legend>
         <label><input type="radio" name="mode" value="cpu" checked><span>CPU<b>コンピュータ</b></span></label>
         <label><input type="radio" name="mode" value="local"><span>2P<b>この端末で</b></span></label>
         <label><input type="radio" name="mode" value="online"><span>LINK<b>2台で対戦</b></span></label>
+        <label><input type="radio" name="mode" value="challenge"><span>FINISH<b>勝ちきり</b></span></label>
       </fieldset>
       <fieldset class="clock-options">
         <legend>一手の持ち時間</legend>
@@ -91,6 +92,20 @@
           <button id="shareRoomBtn" class="share-btn" type="button">📤 相手に送る</button>
         </div>
       </div>
+      <section id="challengeOptions" class="challenge-options" hidden>
+        <label for="challengeSelect">開始局面</label>
+        <select id="challengeSelect">
+          <option value="initiative-1">01 — 主導権 I</option>
+          <option value="counter-1">02 — カウンター I</option>
+          <option value="crossfire-1">03 — 交差する狙い</option>
+          <option value="defense-1">04 — 静かな防衛</option>
+          <option value="pressure-1">05 — 包囲網</option>
+          <option value="silver-edge">06 — 銀の切り返し</option>
+          <option value="endgame-1">07 — 狭まる空間</option>
+          <option value="endgame-2">08 — 最後の分岐</option>
+        </select>
+        <div id="challengeBrief" class="challenge-brief"></div>
+      </section>
       <button id="startBtn" class="primary" value="start">対局を始める</button>
       <button id="tutorialBtn" class="text-btn" type="button">？ あそびかた</button>
       <button id="installBtn" class="text-btn" type="button" hidden>＋ ホーム画面に追加</button>
@@ -129,6 +144,6 @@
   <script type="importmap">
     {"imports":{"three":"./vendor/three.module.min.js"}}
   </script>
-  <script type="module" src="src/main.js?v=feature-suite-1"></script>
+  <script type="module" src="src/main.js?v=finish-mode-1"></script>
 </body>
 </html>

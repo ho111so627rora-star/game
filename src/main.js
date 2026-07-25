@@ -2,15 +2,16 @@ import { createGame, play, undo, serialize, other, BLACK, WHITE } from './core.j
 import { BoardRenderer } from './renderer.js?v=feature-suite-1';
 import { AudioManager } from './audio.js?v=home-bgm-1';
 import { OnlineSession, createRoomCode } from './online.js?v=feature-suite-1';
+import { CHALLENGES, restoreChallenge } from './challenges.js?v=finish-mode-1';
 import { toDataURL } from '../vendor/qrcode.js';
 
 const $ = selector => document.querySelector(selector);
 const menu = $('#menuDialog'), result = $('#resultDialog'), thinking = $('#thinking');
-const ONLINE_STATE_KEY = 'cube-four-online-v1', STATS_KEY = 'cube-four-stats-v1';
+const ONLINE_STATE_KEY = 'cube-four-online-v1', STATS_KEY = 'cube-four-stats-v1', CHALLENGE_KEY = 'cube-four-challenges-v1';
 const audio = new AudioManager();
 let game = createGame(), mode = 'cpu', difficulty = 'normal', human = BLACK, busy = false, requestId = 0, onlineGameStarted = false;
 let clockLimit = 0, timeLeft = 0, clockTimer = null, lastClockTick = 0;
-let replaying = false, replayHistory = [], replayIndex = 0, resultRecorded = false, resultTimer = null, installPrompt = null;
+let replaying = false, replayHistory = [], replayIndex = 0, replayBase = 0, resultRecorded = false, resultTimer = null, installPrompt = null, activeChallenge = null;
 
 const worker = new Worker(new URL('./ai-worker.js', import.meta.url), { type: 'module' });
 const renderer = new BoardRenderer($('#board'), humanMove);
@@ -23,7 +24,8 @@ function update(animateCell = -1) {
   renderer.setState(game, animateCell);
   $('#turnPiece').className = `mini-piece ${game.turn === BLACK ? 'dark' : 'light'}`;
   $('#statusText').textContent = game.winner ? 'しょうぶ あり！' : game.draw ? 'ひきわけ！' : `${playerName(game.turn)} の ばん`;
-  $('#undoBtn').disabled = busy || replaying || !game.history.length || mode === 'online';
+  const undoFloor = mode === 'challenge' && activeChallenge ? activeChallenge.history.length : 0;
+  $('#undoBtn').disabled = busy || replaying || game.history.length <= undoFloor || mode === 'online';
   updateClockDisplay();
   if ((game.winner || game.draw) && !replaying) {
     pauseClock(); clearTimeout(resultTimer); resultTimer = setTimeout(showResult, 850);
@@ -61,12 +63,12 @@ async function handleTimeout() {
 
 async function humanMove(rod) {
   if (busy || replaying || game.winner || game.draw) return;
-  if ((mode === 'cpu' || mode === 'online') && game.turn !== human) return;
+  if ((mode === 'cpu' || mode === 'challenge' || mode === 'online') && game.turn !== human) return;
   const cell = play(game, rod); if (cell == null) return;
   audio.drop();
   if (mode === 'online') { persistOnlineGame(); await online.send('move', { rod, ply: game.history.length }); }
   update(cell); startTurnClock();
-  if (mode === 'cpu' && !game.winner && !game.draw) cpuMove();
+  if ((mode === 'cpu' || mode === 'challenge') && !game.winner && !game.draw) cpuMove();
 }
 
 function cpuMove() { busy = true; thinking.hidden = false; update(); worker.postMessage({ game: serialize(game), difficulty, id: ++requestId }); }
@@ -78,8 +80,13 @@ worker.onmessage = event => {
 async function start() {
   mode = selected('mode'); if (mode === 'online') return;
   await online.leave(); sessionStorage.removeItem(ONLINE_STATE_KEY);
-  difficulty = selected('difficulty'); human = Number(selected('side')); configureClock(selected('clock'));
-  game = createGame(); resultRecorded = false; replaying = false; busy = false; thinking.hidden = true; renderer.reset(); update(); menu.close(); audio.startBgm(); audio.click(); startTurnClock();
+  if (mode === 'challenge') {
+    activeChallenge = CHALLENGES.find(item => item.id === $('#challengeSelect').value) || CHALLENGES[0];
+    difficulty = activeChallenge.difficulty; human = activeChallenge.human; configureClock(0); game = restoreChallenge(activeChallenge); recordChallengeAttempt(activeChallenge.id);
+  } else {
+    activeChallenge = null; difficulty = selected('difficulty'); human = Number(selected('side')); configureClock(selected('clock')); game = createGame();
+  }
+  resultRecorded = false; replaying = false; busy = false; thinking.hidden = true; renderer.reset(); update(); menu.close(); audio.startBgm(); audio.click(); startTurnClock();
   if (mode === 'cpu' && human !== BLACK) setTimeout(cpuMove, 350);
 }
 
@@ -154,7 +161,9 @@ async function receiveOnline(message) {
 }
 
 async function restart(broadcast = true) {
-  game = createGame(); resultRecorded = false; replaying = false; $('#replayBar').hidden = true; busy = false; thinking.hidden = true; requestId++;
+  game = mode === 'challenge' && activeChallenge ? restoreChallenge(activeChallenge) : createGame();
+  if (mode === 'challenge' && activeChallenge) recordChallengeAttempt(activeChallenge.id);
+  resultRecorded = false; replaying = false; $('#replayBar').hidden = true; busy = false; thinking.hidden = true; requestId++;
   if (mode === 'online') onlineGameStarted = true; renderer.reset(); update(); startTurnClock();
   if (result.open) result.close();
   if (mode === 'online') { persistOnlineGame(); if (broadcast) await online.send('restart', { clockLimit }); }
@@ -163,6 +172,20 @@ async function restart(broadcast = true) {
 
 function getStats() { try { return { played: 0, wins: 0, losses: 0, draws: 0, streak: 0, best: 0, ...JSON.parse(localStorage.getItem(STATS_KEY)) }; } catch { return { played: 0, wins: 0, losses: 0, draws: 0, streak: 0, best: 0 }; } }
 function renderStats() { const stats = getStats(); $('#statPlayed').textContent = stats.played; $('#statWins').textContent = stats.wins; $('#statBest').textContent = stats.best; }
+function getChallengeProgress() { try { return JSON.parse(localStorage.getItem(CHALLENGE_KEY)) || {}; } catch { return {}; } }
+function saveChallengeProgress(progress) { localStorage.setItem(CHALLENGE_KEY, JSON.stringify(progress)); }
+function recordChallengeAttempt(id) { const progress = getChallengeProgress(); progress[id] = { attempts: 0, cleared: false, best: null, ...progress[id] }; progress[id].attempts++; saveChallengeProgress(progress); renderChallengeBrief(); }
+function recordChallengeResult() {
+  if (mode !== 'challenge' || !activeChallenge || game.winner !== human) return;
+  const progress = getChallengeProgress(), moves = game.history.length - activeChallenge.history.length;
+  progress[activeChallenge.id] = { attempts: 1, cleared: false, best: null, ...progress[activeChallenge.id] };
+  progress[activeChallenge.id].cleared = true; progress[activeChallenge.id].best = progress[activeChallenge.id].best == null ? moves : Math.min(progress[activeChallenge.id].best, moves); saveChallengeProgress(progress); renderChallengeBrief();
+}
+function renderChallengeBrief() {
+  const challenge = CHALLENGES.find(item => item.id === $('#challengeSelect').value) || CHALLENGES[0], record = getChallengeProgress()[challenge.id];
+  const status = record?.cleared ? `<span class="cleared">✓ CLEAR　自己最短 ${record.best}手</span>` : `未クリア${record?.attempts ? `　挑戦 ${record.attempts}回` : ''}`;
+  $('#challengeBrief').innerHTML = `<b>${challenge.type}</b>　担当：${playerName(challenge.human)}　CPU：${challenge.difficulty === 'hard' ? 'つよい' : 'ふつう'}<br>${challenge.brief}<br>${status}`;
+}
 function recordResult() {
   if (resultRecorded || replaying) return; resultRecorded = true;
   const stats = getStats(); stats.played++;
@@ -174,24 +197,24 @@ function recordResult() {
 
 function showResult() {
   if (result.open || replaying || !game.winner && !game.draw) return;
-  replayHistory = game.history.map(move => ({ rod: move.rod })); recordResult();
+  replayHistory = game.history.map(move => ({ rod: move.rod })); replayBase = mode === 'challenge' && activeChallenge ? activeChallenge.history.length : 0; recordResult(); recordChallengeResult();
   const humanWon = game.winner === human;
   if (game.draw) { $('#resultEmoji').textContent = '＝'; $('#resultTitle').textContent = 'DRAW'; $('#resultText').textContent = '64手で引き分けました。'; }
   else {
     $('#resultEmoji').textContent = humanWon || mode === 'local' ? '◆' : '◇';
     $('#resultTitle').textContent = mode === 'local' ? `${playerName(game.winner)} の勝利` : humanWon ? 'YOU WIN' : 'YOU LOSE';
-    $('#resultText').textContent = game.timeout ? `${playerName(other(game.winner))}の時間切れです。` : '4つのラインが完成しました。'; audio.win(); confetti();
+    $('#resultText').textContent = mode === 'challenge' ? (humanWon ? `「${activeChallenge.title}」を勝ちきりました。` : '局面を勝ちきれませんでした。もう一度挑戦できます。') : game.timeout ? `${playerName(other(game.winner))}の時間切れです。` : '4つのラインが完成しました。'; audio.win(); confetti();
   }
   result.showModal();
 }
 
-function startReplay() { if (!replayHistory.length) return; result.close(); replaying = true; pauseClock(); replayIndex = 0; renderer.reset(); $('#replayBar').hidden = false; renderReplay(); }
+function startReplay() { if (!replayHistory.length) return; result.close(); replaying = true; pauseClock(); replayIndex = replayBase; renderer.reset(); $('#replayBar').hidden = false; renderReplay(); }
 function renderReplay() {
   game = restoreGame(replayHistory.slice(0, replayIndex)); renderer.setState(game, replayIndex ? game.history.at(-1).cell : -1);
-  $('#statusText').textContent = '棋譜を再生中'; $('#replayCount').textContent = `${replayIndex} / ${replayHistory.length}`;
-  $('#replayPrevBtn').disabled = replayIndex === 0; $('#replayNextBtn').disabled = replayIndex === replayHistory.length; updateClockDisplay();
+  $('#statusText').textContent = '棋譜を再生中'; $('#replayCount').textContent = `${replayIndex - replayBase} / ${replayHistory.length - replayBase}`;
+  $('#replayPrevBtn').disabled = replayIndex === replayBase; $('#replayNextBtn').disabled = replayIndex === replayHistory.length; updateClockDisplay();
 }
-function stepReplay(amount) { replayIndex = Math.max(0, Math.min(replayHistory.length, replayIndex + amount)); renderReplay(); }
+function stepReplay(amount) { replayIndex = Math.max(replayBase, Math.min(replayHistory.length, replayIndex + amount)); renderReplay(); }
 function exitReplay() { replaying = false; $('#replayBar').hidden = true; game = restoreGame(replayHistory); renderer.reset(); update(); }
 
 function confetti() {
@@ -200,9 +223,10 @@ function confetti() {
 }
 
 function updateModeOptions() {
-  const selectedMode = selected('mode'); $('#cpuOptions').hidden = selectedMode !== 'cpu'; $('#onlineOptions').hidden = selectedMode !== 'online'; $('#startBtn').hidden = selectedMode === 'online';
+  const selectedMode = selected('mode'); $('#cpuOptions').hidden = selectedMode !== 'cpu'; $('#onlineOptions').hidden = selectedMode !== 'online'; $('#challengeOptions').hidden = selectedMode !== 'challenge'; $('.clock-options').hidden = selectedMode === 'challenge'; $('#startBtn').hidden = selectedMode === 'online';
   if (selectedMode !== 'online') $('#inviteCard').hidden = true;
   if (selectedMode === 'online' && !online.available) setRoomStatus('オンライン設定を読み込めませんでした', true);
+  if (selectedMode === 'challenge') renderChallengeBrief();
 }
 
 async function resumeOnline(saved) {
@@ -215,19 +239,20 @@ document.querySelectorAll('input[name="mode"]').forEach(input => input.onchange 
 $('#startBtn').onclick = event => { event.preventDefault(); start(); };
 $('#createRoomBtn').onclick = createOnlineRoom; $('#joinRoomBtn').onclick = joinOnlineRoom; $('#shareRoomBtn').onclick = shareRoom;
 $('#roomCodeInput').oninput = event => { event.target.value = event.target.value.toUpperCase().replace(/[^2-9A-HJ-NP-Z]/g, ''); };
+$('#challengeSelect').onchange = renderChallengeBrief;
 $('#homeBtn').onclick = () => { if (!menu.open) { pauseClock(); menu.showModal(); } };
 $('#newBtn').onclick = () => restart(); $('#againBtn').onclick = event => { event.preventDefault(); restart(); };
 $('#resultMenuBtn').onclick = () => setTimeout(() => menu.showModal());
 $('#resetViewBtn').onclick = () => renderer.reset();
 $('#transparentBtn').onclick = () => { renderer.transparent = !renderer.transparent; renderer.draw(); };
-$('#undoBtn').onclick = () => { if (busy || replaying || mode === 'online') return; requestId++; thinking.hidden = true; busy = false; undo(game, mode === 'cpu' && game.history.length >= 2 ? 2 : 1); audio.click(); update(); startTurnClock(); };
+$('#undoBtn').onclick = () => { const floor = mode === 'challenge' && activeChallenge ? activeChallenge.history.length : 0; if (busy || replaying || mode === 'online' || game.history.length <= floor) return; requestId++; thinking.hidden = true; busy = false; undo(game, (mode === 'cpu' || mode === 'challenge') && game.history.length - floor >= 2 ? 2 : 1); audio.click(); update(); startTurnClock(); };
 $('#soundBtn').onclick = () => { const soundMode = audio.cycleMode(), labels = { full: ['🔊', 'BGMと効果音'], effects: ['🎵', '効果音だけ'], muted: ['🔇', 'すべて消音'] }; $('#soundBtn').textContent = labels[soundMode][0]; $('#soundBtn').setAttribute('aria-label', labels[soundMode][1]); };
 $('#tutorialBtn').onclick = () => $('#tutorialDialog').showModal();
 $('#replayBtn').onclick = startReplay; $('#replayPrevBtn').onclick = () => stepReplay(-1); $('#replayNextBtn').onclick = () => stepReplay(1); $('#replayExitBtn').onclick = exitReplay;
 
 window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; $('#installBtn').hidden = false; });
 $('#installBtn').onclick = async () => { if (!installPrompt) return; installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; $('#installBtn').hidden = true; };
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js?v=feature-suite-1');
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js?v=finish-mode-1');
 
 renderer.setState(game); renderStats();
 const saved = savedOnlineGame(), invitedRoom = new URLSearchParams(location.search).get('room')?.toUpperCase();

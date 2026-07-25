@@ -24,6 +24,7 @@ python -m http.server 8080
 - 金銀の駒の落下・着地アニメーション、手番発光、勝利カメラ演出
 - 待った、透過表示、直前手と勝利ラインの表示
 - 30秒／60秒の対局時計、棋譜リプレイ、端末内戦績
+- 14〜29手進んだ8つの途中局面から戦う「勝ちきり」モード
 - PWA対応（ホーム画面への追加、CPU・ローカル対戦のオフライン起動）
 - BGMerのクールな対戦用ループBGM、Web Audio効果音、3段階音声切替、遊び方、勝利演出
 
@@ -35,6 +36,7 @@ python -m http.server 8080
 - `src/audio.js`: ループBGMとWeb Audio効果音
 - `src/main.js`: UIとゲーム進行
 - `src/online.js`: 合言葉ルームとRealtime同期
+- `src/challenges.js`: 勝ちきり局面、検証、復元
 
 ## 2台対戦の設定
 
