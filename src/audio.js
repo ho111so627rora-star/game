@@ -2,7 +2,7 @@ export class AudioManager {
   constructor() {
     this.mode = 'full';
     this.ctx = null;
-    this.music = new Audio(new URL('../public/audio/space-flight.mp3', import.meta.url));
+    this.music = new Audio(new URL('../public/audio/warning-sign.mp3', import.meta.url));
     this.music.loop = true;
     this.music.preload = 'auto';
     this.music.volume = 0.28;
