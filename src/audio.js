@@ -6,6 +6,10 @@ export class AudioManager {
     this.music.loop = true;
     this.music.preload = 'auto';
     this.music.volume = 0.28;
+    this.unlockHandler = () => {
+      this.disarmBgm();
+      if (this.mode === 'full') this.startBgm();
+    };
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) this.music.pause();
@@ -34,10 +38,21 @@ export class AudioManager {
   startBgm() {
     this.ensureContext();
     if (this.mode !== 'full' || document.hidden || !this.music.paused) return;
-    this.music.play().catch(() => {});
+    this.music.play().then(() => this.disarmBgm()).catch(() => this.armBgm());
+  }
+
+  armBgm() {
+    document.addEventListener('pointerdown', this.unlockHandler, { once: true, capture: true });
+    document.addEventListener('keydown', this.unlockHandler, { once: true, capture: true });
+  }
+
+  disarmBgm() {
+    document.removeEventListener('pointerdown', this.unlockHandler, { capture: true });
+    document.removeEventListener('keydown', this.unlockHandler, { capture: true });
   }
 
   stopBgm() {
+    this.disarmBgm();
     this.music.pause();
   }
 
