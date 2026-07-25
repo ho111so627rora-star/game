@@ -60,8 +60,8 @@ h1 small { display: block; margin-top: 3px; font-size: 10px; font-weight: 500; l
 .status-card strong { font-size: 16px; font-weight: 600; letter-spacing: .08em; }
 .status-card #thinking { font-size: 11px; color: var(--gold-bright); }
 .mini-piece { display: inline-block; width: 27px; height: 27px; flex: none; border-radius: 50%; vertical-align: middle; }
-.mini-piece.dark { background: radial-gradient(circle at 32% 24%, #6b7788, #101722 48%, #030508 78%); border: 2px solid #697586; box-shadow: 0 0 0 1px #05070a; }
-.mini-piece.light { background: radial-gradient(circle at 35% 25%, #fff, #d9d6ce 67%); border: 2px solid #7c8794; box-shadow: 0 0 0 1px #f8f5ed; }
+.mini-piece.dark { background: radial-gradient(circle at 30% 22%, #fff0a5 0, #e8bd55 25%, #a66b16 66%, #4c2b08 100%); border: 2px solid #f2cf73; box-shadow: 0 0 0 1px #6e4511, 0 2px 9px #d69b3155; }
+.mini-piece.light { background: radial-gradient(circle at 30% 22%, #fff 0, #dbe3e9 30%, #8997a3 68%, #3d4852 100%); border: 2px solid #eef3f6; box-shadow: 0 0 0 1px #687681, 0 2px 9px #d9e7f255; }
 .canvas-wrap { position: relative; flex: 1; min-height: 250px; touch-action: none; }
 canvas { width: 100%; height: 100%; display: block; touch-action: none; }
 .canvas-tip {

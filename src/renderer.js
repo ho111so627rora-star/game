@@ -27,8 +27,8 @@ export class BoardRenderer {
   }
 
   makeMaterials() {
-    this.blackMaterial = new THREE.MeshPhysicalMaterial({ color: 0x101721, roughness: 0.18, metalness: 0.35, clearcoat: 0.95, clearcoatRoughness: 0.14 });
-    this.whiteMaterial = new THREE.MeshPhysicalMaterial({ color: 0xe5e1d8, roughness: 0.27, metalness: 0.08, clearcoat: 0.7, clearcoatRoughness: 0.22 });
+    this.blackMaterial = new THREE.MeshPhysicalMaterial({ color: 0xf0b83f, roughness: 0.17, metalness: 0.58, clearcoat: 1, clearcoatRoughness: 0.08, emissive: 0x5a2b00, emissiveIntensity: 0.22 });
+    this.whiteMaterial = new THREE.MeshPhysicalMaterial({ color: 0xe8eef2, roughness: 0.16, metalness: 0.5, clearcoat: 1, clearcoatRoughness: 0.07, emissive: 0x26333d, emissiveIntensity: 0.16 });
     this.ghostBlackMaterial = this.blackMaterial.clone(); this.ghostWhiteMaterial = this.whiteMaterial.clone();
     for (const m of [this.ghostBlackMaterial, this.ghostWhiteMaterial]) { m.transparent = true; m.opacity = 0.42; m.depthWrite = false; }
     this.rodMaterial = new THREE.MeshStandardMaterial({ color: 0x8d98a4, metalness: 0.86, roughness: 0.2 });
@@ -40,7 +40,8 @@ export class BoardRenderer {
     const hemi = new THREE.HemisphereLight(0x8ba2b8, 0x080a0d, 1.5);
     const sun = new THREE.DirectionalLight(0xffe0b0, 3.1); sun.position.set(5, 9, 6); sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = sun.shadow.camera.bottom = -5; sun.shadow.camera.right = sun.shadow.camera.top = 5; sun.shadow.bias = -0.00025;
-    const fill = new THREE.PointLight(0x4d7da0, 10, 14, 2); fill.position.set(-4, 4, -3); this.scene.add(hemi, sun, fill);
+    const fill = new THREE.PointLight(0x4d7da0, 10, 14, 2); fill.position.set(-4, 4, -3);
+    const rim = new THREE.PointLight(0xffffff, 12, 13, 2); rim.position.set(-3, 6, 5); this.scene.add(hemi, sun, fill, rim);
     const side = new THREE.MeshStandardMaterial({ color: 0x111820, metalness: 0.65, roughness: 0.38 });
     const board = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.36, 4.7), [side, side, new THREE.MeshStandardMaterial({ color: 0x222b34, metalness: 0.48, roughness: 0.3 }), side, side, side]);
     board.position.y = -0.2; board.castShadow = board.receiveShadow = true; this.staticGroup.add(board);
