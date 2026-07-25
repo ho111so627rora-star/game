@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#080b10">
+  <meta name="description" content="金と銀で戦う4×4×4の立体四目ならべ">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" href="public/icons/cube-four.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="public/icons/cube-four.svg">
+  <link rel="manifest" href="manifest.webmanifest?v=feature-suite-1">
   <title>キューブならべ！</title>
   <link rel="stylesheet" href="styles.css?v=gold-silver-1">
   <link rel="stylesheet" href="online.css?v=gold-silver-1">
@@ -21,6 +27,7 @@
         <span id="turnPiece" class="mini-piece dark"></span>
         <strong id="statusText">ゴールド の ばん</strong>
         <span id="thinking" hidden>かんがえ中…</span>
+        <time id="clockDisplay" hidden>0:30</time>
       </div>
       <div class="canvas-wrap">
         <canvas id="board" aria-label="4かける4かける4のゲーム盤"></canvas>
@@ -32,6 +39,12 @@
         <button id="transparentBtn">◉<span>すける</span></button>
         <button id="newBtn">↻<span>もう一局</span></button>
       </nav>
+      <aside id="replayBar" class="replay-bar" hidden aria-label="棋譜再生">
+        <button id="replayPrevBtn" aria-label="一手戻る">◀</button>
+        <span id="replayCount">0 / 0</span>
+        <button id="replayNextBtn" aria-label="一手進む">▶</button>
+        <button id="replayExitBtn">終了</button>
+      </aside>
     </section>
   </main>
 
@@ -45,6 +58,12 @@
         <label><input type="radio" name="mode" value="cpu" checked><span>CPU<b>コンピュータ</b></span></label>
         <label><input type="radio" name="mode" value="local"><span>2P<b>この端末で</b></span></label>
         <label><input type="radio" name="mode" value="online"><span>LINK<b>2台で対戦</b></span></label>
+      </fieldset>
+      <fieldset class="clock-options">
+        <legend>一手の持ち時間</legend>
+        <label><input type="radio" name="clock" value="0" checked><span>∞<b>制限なし</b></span></label>
+        <label><input type="radio" name="clock" value="30"><span>30<b>秒</b></span></label>
+        <label><input type="radio" name="clock" value="60"><span>60<b>秒</b></span></label>
       </fieldset>
       <div id="cpuOptions">
         <fieldset>
@@ -74,6 +93,12 @@
       </div>
       <button id="startBtn" class="primary" value="start">対局を始める</button>
       <button id="tutorialBtn" class="text-btn" type="button">？ あそびかた</button>
+      <button id="installBtn" class="text-btn" type="button" hidden>＋ ホーム画面に追加</button>
+      <section class="stats-card" aria-label="戦績">
+        <span><b id="statPlayed">0</b>対局</span>
+        <span><b id="statWins">0</b>勝</span>
+        <span><b id="statBest">0</b>最高連勝</span>
+      </section>
     </form>
   </dialog>
 
@@ -82,6 +107,7 @@
       <div id="resultEmoji" class="result-emoji">🎉</div>
       <h2 id="resultTitle">やったね！</h2>
       <p id="resultText"></p>
+      <button id="replayBtn" class="secondary" type="button">棋譜を見る</button>
       <button id="againBtn" class="primary" value="again">もう一局 ↻</button>
       <button id="resultMenuBtn" class="text-btn" value="menu">メニューへ</button>
     </form>
@@ -103,6 +129,6 @@
   <script type="importmap">
     {"imports":{"three":"./vendor/three.module.min.js"}}
   </script>
-  <script type="module" src="src/main.js?v=home-bgm-1"></script>
+  <script type="module" src="src/main.js?v=feature-suite-1"></script>
 </body>
 </html>

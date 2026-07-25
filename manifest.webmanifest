@@ -1,0 +1,14 @@
+{
+  "name": "CUBE FOUR — 立体四目ならべ",
+  "short_name": "CUBE FOUR",
+  "description": "金と銀で戦う4×4×4の立体四目ならべ",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080b10",
+  "theme_color": "#080b10",
+  "icons": [
+    { "src": "public/icons/cube-four.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

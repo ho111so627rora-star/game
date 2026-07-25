@@ -8,7 +8,7 @@ const BALL_Y = 0.34;
 export class BoardRenderer {
   constructor(canvas, onPick) {
     this.c = canvas; this.onPick = onPick; this.hover = -1; this.transparent = false;
-    this.last = -1; this.win = []; this.pointerDown = null;
+    this.last = -1; this.win = []; this.pointerDown = null; this.dropAnimations = new Map(); this.cameraGoal = null; this.targetGoal = null; this.lastWinKey = '';
     this.raycaster = new THREE.Raycaster(); this.pointer = new THREE.Vector2(); this.clock = new THREE.Clock();
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -41,9 +41,11 @@ export class BoardRenderer {
     const sun = new THREE.DirectionalLight(0xffe0b0, 3.1); sun.position.set(5, 9, 6); sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = sun.shadow.camera.bottom = -5; sun.shadow.camera.right = sun.shadow.camera.top = 5; sun.shadow.bias = -0.00025;
     const fill = new THREE.PointLight(0x4d7da0, 10, 14, 2); fill.position.set(-4, 4, -3);
-    const rim = new THREE.PointLight(0xffffff, 12, 13, 2); rim.position.set(-3, 6, 5); this.scene.add(hemi, sun, fill, rim);
+    const rim = new THREE.PointLight(0xffffff, 12, 13, 2); rim.position.set(-3, 6, 5);
+    this.turnLight = new THREE.PointLight(0xf0b83f, 9, 10, 2); this.turnLight.position.set(0, 3.8, 0); this.scene.add(hemi, sun, fill, rim, this.turnLight);
     const side = new THREE.MeshStandardMaterial({ color: 0x111820, metalness: 0.65, roughness: 0.38 });
-    const board = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.36, 4.7), [side, side, new THREE.MeshStandardMaterial({ color: 0x222b34, metalness: 0.48, roughness: 0.3 }), side, side, side]);
+    this.boardTopMaterial = new THREE.MeshStandardMaterial({ color: 0x222b34, metalness: 0.48, roughness: 0.3, emissive: 0x3e2709, emissiveIntensity: 0.16 });
+    const board = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.36, 4.7), [side, side, this.boardTopMaterial, side, side, side]);
     board.position.y = -0.2; board.castShadow = board.receiveShadow = true; this.staticGroup.add(board);
     const gridPoints = [];
     for (let i = -2; i <= 2; i++) { gridPoints.push(new THREE.Vector3(i, 0.006, -2), new THREE.Vector3(i, 0.006, 2), new THREE.Vector3(-2, 0.006, i), new THREE.Vector3(2, 0.006, i)); }
@@ -63,15 +65,27 @@ export class BoardRenderer {
 
   worldRod(rod) { return { x: rod % 4 - 1.5, z: Math.floor(rod / 4) - 1.5 }; }
   worldCell(cell) { const { x, y, z } = coordOf(cell); return new THREE.Vector3(x - 1.5, BALL_Y + z * BALL_STEP, y - 1.5); }
-  reset() { this.camera.position.set(6.7, 5.4, 7.2); this.controls.target.set(0, 1.18, 0); this.controls.update(); }
+  reset() { this.cameraGoal = this.targetGoal = null; this.lastWinKey = ''; this.camera.position.set(6.7, 5.4, 7.2); this.controls.target.set(0, 1.18, 0); this.controls.update(); }
   resize() { const width = Math.max(1, this.c.clientWidth), height = Math.max(1, this.c.clientHeight); this.renderer.setSize(width, height, false); this.camera.aspect = width / height; this.camera.updateProjectionMatrix(); }
-  setState(game) { this.game = game; this.last = game.history.at(-1)?.cell ?? -1; this.win = game.winningLine || []; if (this.hover >= 0 && game.heights[this.hover] >= 4) this.hover = -1; this.rebuildPieces(); }
+  setState(game, animateCell = -1) {
+    this.game = game; this.last = game.history.at(-1)?.cell ?? -1; this.win = game.winningLine || [];
+    if (animateCell >= 0) this.dropAnimations.set(animateCell, performance.now());
+    const goldTurn = game.turn === 1; this.turnLight.color.setHex(goldTurn ? 0xf0b83f : 0xdcebf5); this.boardTopMaterial.emissive.setHex(goldTurn ? 0x4a2b06 : 0x182d3b);
+    if (this.hover >= 0 && game.heights[this.hover] >= 4) this.hover = -1;
+    const winKey = this.win.join(',');
+    if (winKey && winKey !== this.lastWinKey) {
+      const a = this.worldCell(this.win[0]), b = this.worldCell(this.win[3]), middle = a.clone().add(b).multiplyScalar(0.5);
+      const view = this.camera.position.clone().sub(this.controls.target).normalize();
+      this.targetGoal = middle; this.cameraGoal = middle.clone().add(view.multiplyScalar(7)).add(new THREE.Vector3(0, 1.1, 0)); this.lastWinKey = winKey;
+    }
+    this.rebuildPieces();
+  }
   clearGroup(group) { while (group.children.length) { const child = group.children.pop(); child.geometry?.dispose(); if (child.material && ![this.blackMaterial, this.whiteMaterial, this.ghostBlackMaterial, this.ghostWhiteMaterial].includes(child.material)) child.material.dispose?.(); } }
   makeBall(player, ghost = false) { let material = ghost ? (player === 1 ? this.ghostBlackMaterial : this.ghostWhiteMaterial) : (player === 1 ? this.blackMaterial : this.whiteMaterial); if (!ghost && this.transparent) { material = material.clone(); material.transparent = true; material.opacity = 0.62; material.depthWrite = false; } const ball = new THREE.Mesh(new THREE.SphereGeometry(0.31, 32, 22), material); ball.castShadow = !ghost; ball.receiveShadow = true; return ball; }
 
   rebuildPieces() {
     if (!this.game) return; this.clearGroup(this.pieceGroup); this.clearGroup(this.markerGroup);
-    for (let i = 0; i < 64; i++) { const player = this.game.cells[i]; if (!player) continue; const ball = this.makeBall(player); ball.position.copy(this.worldCell(i)); this.pieceGroup.add(ball); if (i === this.last || this.win.includes(i)) this.addBallMarker(ball.position, this.win.includes(i) ? 0xffd21f : 0x52c7ff); }
+    for (let i = 0; i < 64; i++) { const player = this.game.cells[i]; if (!player) continue; const ball = this.makeBall(player); ball.position.copy(this.worldCell(i)); ball.userData.cell = i; ball.userData.targetY = ball.position.y; this.pieceGroup.add(ball); if (i === this.last || this.win.includes(i)) this.addBallMarker(ball.position, this.win.includes(i) ? 0xffd874 : 0x72d6ff); }
     if (this.hover >= 0 && this.game.heights[this.hover] < 4) { const { x, z } = this.worldRod(this.hover), ghost = this.makeBall(this.game.turn, true); ghost.position.set(x, BALL_Y + this.game.heights[this.hover] * BALL_STEP, z); this.pieceGroup.add(ghost); const ring = new THREE.Mesh(new THREE.TorusGeometry(0.41, 0.045, 12, 48), new THREE.MeshBasicMaterial({ color: 0xffc928, transparent: true, opacity: 0.9 })); ring.rotation.x = Math.PI / 2; ring.position.set(x, 0.035, z); this.markerGroup.add(ring); }
     if (this.win.length === 4) this.addWinningBeam(); this.updateRodMaterials();
   }
@@ -83,5 +97,17 @@ export class BoardRenderer {
   pick(event) { if (!this.game) return -1; this.setPointer(event); this.raycaster.setFromCamera(this.pointer, this.camera); const hits = this.raycaster.intersectObjects(this.hitTargets, false); return hits.map(hit => hit.object.userData.rod).find(rod => this.game.heights[rod] < 4) ?? -1; }
   bind() { this.c.addEventListener('pointerdown', e => { this.pointerDown = { x: e.clientX, y: e.clientY }; }); this.c.addEventListener('pointermove', e => { if (this.pointerDown) return; const rod = this.pick(e); if (rod !== this.hover) { this.hover = rod; this.rebuildPieces(); } }); this.c.addEventListener('pointerleave', () => { if (!this.pointerDown && this.hover !== -1) { this.hover = -1; this.rebuildPieces(); } }); this.c.addEventListener('pointerup', e => { if (!this.pointerDown) return; const distance = Math.hypot(e.clientX - this.pointerDown.x, e.clientY - this.pointerDown.y); this.pointerDown = null; if (distance < 7) this.onPick(this.pick(e)); }); }
   draw() { this.rebuildPieces(); }
-  animate() { requestAnimationFrame(() => this.animate()); const time = this.clock.getElapsedTime(); for (const child of this.markerGroup.children) if (child.geometry?.type === 'TorusGeometry') child.material.opacity = 0.68 + Math.sin(time * 4) * 0.22; this.controls.update(); this.renderer.render(this.scene, this.camera); }
+  animate() {
+    requestAnimationFrame(() => this.animate()); const time = this.clock.getElapsedTime(), now = performance.now();
+    for (const child of this.pieceGroup.children) {
+      const started = this.dropAnimations.get(child.userData.cell); if (started == null) continue;
+      const progress = Math.min(1, (now - started) / 620), target = child.userData.targetY;
+      if (progress < .78) { const fall = progress / .78; child.position.y = 4.35 + (target - 4.35) * fall * fall; }
+      else { const bounce = (progress - .78) / .22; child.position.y = target + Math.sin(bounce * Math.PI) * .14 * (1 - bounce); }
+      if (progress >= 1) { child.position.y = target; this.dropAnimations.delete(child.userData.cell); }
+    }
+    for (const child of this.markerGroup.children) if (child.geometry?.type === 'TorusGeometry') child.material.opacity = 0.68 + Math.sin(time * 4) * 0.22;
+    if (this.cameraGoal && this.targetGoal) { this.camera.position.lerp(this.cameraGoal, .035); this.controls.target.lerp(this.targetGoal, .045); }
+    this.controls.update(); this.renderer.render(this.scene, this.camera);
+  }
 }
