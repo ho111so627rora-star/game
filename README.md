@@ -21,14 +21,14 @@ python -m http.server 8080
 - CPUはブラウザ内の反復深化・ミニマックス・αβ枝刈り（Web Worker）
 - ドラッグ／スワイプ回転、ホイールズーム、ゴースト球
 - 待った、透過表示、直前手と勝利ラインの表示
-- Web AudioによるオリジナルBGM、効果音、3段階音声切替、遊び方、勝利演出
+- CC0の宇宙系ループBGM、Web Audio効果音、3段階音声切替、遊び方、勝利演出
 
 ## 構成
 
 - `src/core.js`: 盤面、76ライン、着手、勝敗判定
 - `src/ai-worker.js`: 探索AI
 - `src/renderer.js`: Canvas 3D投影と操作
-- `src/audio.js`: Web Audio効果音
+- `src/audio.js`: ループBGMとWeb Audio効果音
 - `src/main.js`: UIとゲーム進行
 - `src/online.js`: 合言葉ルームとRealtime同期
 

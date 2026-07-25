@@ -2,8 +2,15 @@ export class AudioManager {
   constructor() {
     this.mode = 'full';
     this.ctx = null;
-    this.bgmTimer = null;
-    this.bgmStep = 0;
+    this.music = new Audio(new URL('../public/audio/space-flight.mp3', import.meta.url));
+    this.music.loop = true;
+    this.music.preload = 'auto';
+    this.music.volume = 0.28;
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.music.pause();
+      else if (this.mode === 'full') this.startBgm();
+    });
   }
 
   ensureContext() {
@@ -24,27 +31,14 @@ export class AudioManager {
     oscillator.start(start); oscillator.stop(start + duration + 0.02);
   }
 
-  bgmBeat() {
-    if (this.mode !== 'full' || document.hidden) return;
-    const melody = [392, 494, 587, 494, 440, 523, 659, 523, 349, 440, 523, 440, 392, 494, 659, 587];
-    const bass = [196, 220, 174.6, 196];
-    const note = melody[this.bgmStep % melody.length];
-    this.tone(note, 0.28, 'triangle', 0.026);
-    if (this.bgmStep % 2 === 0) this.tone(note / 2, 0.22, 'sine', 0.012, 0.02);
-    if (this.bgmStep % 4 === 0) this.tone(bass[Math.floor(this.bgmStep / 4) % bass.length], 0.75, 'sine', 0.018);
-    this.bgmStep++;
-  }
-
   startBgm() {
     this.ensureContext();
-    if (this.mode !== 'full' || this.bgmTimer) return;
-    this.bgmBeat();
-    this.bgmTimer = setInterval(() => this.bgmBeat(), 330);
+    if (this.mode !== 'full' || document.hidden || !this.music.paused) return;
+    this.music.play().catch(() => {});
   }
 
   stopBgm() {
-    if (this.bgmTimer) clearInterval(this.bgmTimer);
-    this.bgmTimer = null;
+    this.music.pause();
   }
 
   cycleMode() {
