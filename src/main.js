@@ -1,5 +1,5 @@
 import { createGame, play, undo, serialize, BLACK, WHITE } from './core.js';
-import { BoardRenderer } from './renderer.js?v=dark-ui-2';
+import { BoardRenderer } from './renderer.js?v=gold-silver-1';
 import { AudioManager } from './audio.js';
 import { OnlineSession, createRoomCode } from './online.js';
 import { toDataURL } from '../vendor/qrcode.js';
@@ -18,7 +18,7 @@ function selected(name) { return document.querySelector(`input[name="${name}"]:c
 function update() {
   renderer.setState(game);
   $('#turnPiece').className = `mini-piece ${game.turn === BLACK ? 'dark' : 'light'}`;
-  $('#statusText').textContent = game.winner ? 'しょうぶ あり！' : game.draw ? 'ひきわけ！' : `${game.turn === BLACK ? 'くろ' : 'しろ'} の ばん`;
+  $('#statusText').textContent = game.winner ? 'しょうぶ あり！' : game.draw ? 'ひきわけ！' : `${game.turn === BLACK ? 'ゴールド' : 'シルバー'} の ばん`;
   $('#undoBtn').disabled = busy || !game.history.length || mode === 'online';
   if (game.winner || game.draw) setTimeout(showResult, 650);
 }
@@ -114,7 +114,7 @@ function showResult() {
   if (result.open) return;
   const humanWon = game.winner === human;
   if (game.draw) { $('#resultEmoji').textContent = '🤝'; $('#resultTitle').textContent = 'ひきわけ！'; $('#resultText').textContent = 'さいごまで よくがんばったね！'; }
-  else { $('#resultEmoji').textContent = humanWon || mode === 'local' ? '🎉' : '🌟'; $('#resultTitle').textContent = mode === 'local' ? `${game.winner === BLACK ? 'くろ' : 'しろ'} の かち！` : humanWon ? 'やったね！' : 'おしい！'; $('#resultText').textContent = humanWon || mode === 'local' ? '4つ きれいに そろったよ！' : 'もう一回 やってみよう！'; audio.win(); confetti(); }
+  else { $('#resultEmoji').textContent = humanWon || mode === 'local' ? '◆' : '◇'; $('#resultTitle').textContent = mode === 'local' ? `${game.winner === BLACK ? 'ゴールド' : 'シルバー'} の勝利` : humanWon ? 'YOU WIN' : 'YOU LOSE'; $('#resultText').textContent = humanWon || mode === 'local' ? '4つのラインが完成しました。' : 'もう一度、挑戦してみましょう。'; audio.win(); confetti(); }
   result.showModal();
 }
 
