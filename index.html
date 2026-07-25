@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#f7c94b">
+  <meta name="theme-color" content="#080b10">
   <title>キューブならべ！</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="online.css">
@@ -12,7 +12,7 @@
   <main class="app">
     <header>
       <button id="homeBtn" class="icon-btn" aria-label="メニュー">⌂</button>
-      <h1>キューブならべ！<small>4つ そろえよう</small></h1>
+      <h1>CUBE FOUR<small>4 × 4 × 4</small></h1>
       <button id="soundBtn" class="icon-btn" aria-label="BGMと効果音">🔊</button>
     </header>
 
@@ -38,20 +38,20 @@
   <dialog id="menuDialog" class="modal">
     <form method="dialog" class="panel">
       <div class="mascot" aria-hidden="true">● ● ● ●</div>
-      <h2>キューブならべ！</h2>
-      <p>タテ・ヨコ・ななめに<br><b>4つ</b> ならべよう！</p>
+      <h2>CUBE FOUR</h2>
+      <p>64の空間を読み、先に4つをつなぐ。</p>
       <fieldset>
         <legend>だれと あそぶ？</legend>
-        <label><input type="radio" name="mode" value="cpu" checked><span>🤖<b>コンピュータ</b></span></label>
-        <label><input type="radio" name="mode" value="local"><span>👫<b>ふたり</b></span></label>
-        <label><input type="radio" name="mode" value="online"><span>📱<b>2台で</b></span></label>
+        <label><input type="radio" name="mode" value="cpu" checked><span>CPU<b>コンピュータ</b></span></label>
+        <label><input type="radio" name="mode" value="local"><span>2P<b>この端末で</b></span></label>
+        <label><input type="radio" name="mode" value="online"><span>LINK<b>2台で対戦</b></span></label>
       </fieldset>
       <div id="cpuOptions">
         <fieldset>
           <legend>つよさ</legend>
-          <label><input type="radio" name="difficulty" value="easy"><span>🙂<b>やさしい</b></span></label>
-          <label><input type="radio" name="difficulty" value="normal" checked><span>😎<b>ふつう</b></span></label>
-          <label><input type="radio" name="difficulty" value="hard"><span>🔥<b>つよい</b></span></label>
+          <label><input type="radio" name="difficulty" value="easy"><span>I<b>やさしい</b></span></label>
+          <label><input type="radio" name="difficulty" value="normal" checked><span>II<b>ふつう</b></span></label>
+          <label><input type="radio" name="difficulty" value="hard"><span>III<b>つよい</b></span></label>
         </fieldset>
         <fieldset>
           <legend>どっちで あそぶ？</legend>
@@ -60,8 +60,8 @@
         </fieldset>
       </div>
       <div id="onlineOptions" hidden>
-        <p class="online-lead">合言葉で つながろう！</p>
-        <button id="createRoomBtn" class="room-btn" type="button">✨ 部屋をつくる</button>
+        <p class="online-lead">対戦コードで接続</p>
+        <button id="createRoomBtn" class="room-btn" type="button">部屋を作成</button>
         <div class="join-row">
           <input id="roomCodeInput" maxlength="6" autocomplete="off" placeholder="合言葉 6文字" aria-label="合言葉">
           <button id="joinRoomBtn" class="room-btn" type="button">入る</button>
@@ -72,7 +72,7 @@
           <button id="shareRoomBtn" class="share-btn" type="button">📤 相手に送る</button>
         </div>
       </div>
-      <button id="startBtn" class="primary" value="start">あそぶ！ ▶</button>
+      <button id="startBtn" class="primary" value="start">対局を始める</button>
       <button id="tutorialBtn" class="text-btn" type="button">？ あそびかた</button>
     </form>
   </dialog>
