@@ -50,7 +50,7 @@ h1 small { display: block; margin-top: 3px; font-size: 10px; font-weight: 500; l
   box-shadow: 0 5px 14px #0007, inset 0 1px #ffffff0d; cursor: pointer;
 }
 .icon-btn:active, .game-actions button:active, .primary:active, .room-btn:active, .share-btn:active { transform: translateY(2px); filter: brightness(.85); }
-.game { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.game { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .status-card {
   height: 50px; margin: 12px auto 0; padding: 7px 19px; min-width: 230px;
   display: flex; gap: 11px; align-items: center; justify-content: center;
@@ -59,6 +59,8 @@ h1 small { display: block; margin-top: 3px; font-size: 10px; font-weight: 500; l
 }
 .status-card strong { font-size: 16px; font-weight: 600; letter-spacing: .08em; }
 .status-card #thinking { font-size: 11px; color: var(--gold-bright); }
+.status-card time { min-width: 42px; padding-left: 10px; border-left: 1px solid #3c4653; color: var(--gold-bright); font: 700 14px ui-monospace, monospace; }
+.status-card time.danger { color: #ff7d78; animation: clockPulse .7s ease-in-out infinite alternate; }
 .mini-piece { display: inline-block; width: 27px; height: 27px; flex: none; border-radius: 50%; vertical-align: middle; }
 .mini-piece.dark { background: radial-gradient(circle at 30% 22%, #fff0a5 0, #e8bd55 25%, #a66b16 66%, #4c2b08 100%); border: 2px solid #f2cf73; box-shadow: 0 0 0 1px #6e4511, 0 2px 9px #d69b3155; }
 .mini-piece.light { background: radial-gradient(circle at 30% 22%, #fff 0, #dbe3e9 30%, #8997a3 68%, #3d4852 100%); border: 2px solid #eef3f6; box-shadow: 0 0 0 1px #687681, 0 2px 9px #d9e7f255; }
@@ -80,6 +82,10 @@ canvas { width: 100%; height: 100%; display: block; touch-action: none; }
   box-shadow: 0 5px 12px #0006, inset 0 1px #ffffff0b;
 }
 .game-actions span { display: block; margin-top: 3px; color: #aeb6c1; font-size: 10px; font-weight: 600; letter-spacing: .06em; }
+.replay-bar { position: absolute; z-index: 4; left: 50%; bottom: 84px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #4b5664; border-radius: 10px; background: #0b1016ed; box-shadow: 0 10px 30px #000a; }
+.replay-bar[hidden] { display: none; }
+.replay-bar button { min-width: 42px; min-height: 42px; border: 1px solid #46515e; border-radius: 7px; background: #19212b; color: #e4e7ea; font-weight: 700; }
+.replay-bar span { min-width: 65px; text-align: center; color: var(--gold-bright); font: 700 13px ui-monospace, monospace; }
 .modal { border: 0; padding: 0; background: transparent; max-width: none; max-height: none; width: 100%; height: 100%; overflow: auto; }
 .modal::backdrop { background: #030508d9; backdrop-filter: blur(8px); }
 .panel {
@@ -106,7 +112,12 @@ canvas { width: 100%; height: 100%; display: block; touch-action: none; }
   background: linear-gradient(135deg, #e0ba7b, #b78645); font: 700 17px inherit; letter-spacing: .09em;
   box-shadow: 0 7px 22px #0007, inset 0 1px #fff6; cursor: pointer;
 }
+.secondary { min-height: 44px; padding: 8px 20px; border: 1px solid #596675; border-radius: 8px; background: #1b242e; color: #dbe0e5; font: 650 14px inherit; cursor: pointer; }
 .text-btn { border: 0; background: transparent; color: #929daa; font-weight: 600; padding: 13px; cursor: pointer; }
+.clock-options label span { min-height: 52px; }
+.stats-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin: 8px 0 0; overflow: hidden; border: 1px solid #303a46; border-radius: 8px; background: #303a46; }
+.stats-card span { padding: 8px 3px; background: #10161d; color: #7f8a97; font-size: 10px; }
+.stats-card b { display: block; color: #d9b36f; font-size: 16px; }
 .result-emoji { font-size: 54px; animation: pop .55s ease-out; filter: saturate(.7); }
 .result-panel { margin-top: 15dvh; }
 .close { position: absolute; right: 13px; top: 10px; width: 40px; height: 40px; border: 1px solid #3a4552; border-radius: 8px; background: #1b222b; color: #ccd1d7; font-size: 25px; }
@@ -116,5 +127,6 @@ canvas { width: 100%; height: 100%; display: block; touch-action: none; }
 .confetti { position: fixed; z-index: 50; width: 8px; height: 13px; top: -20px; animation: fall 1.8s linear forwards; filter: saturate(.75); }
 @keyframes fall { to { transform: translate(var(--drift), 110dvh) rotate(700deg); } }
 @keyframes pop { 0% { transform: scale(.2); } 70% { transform: scale(1.1); } 100% { transform: scale(1); } }
+@keyframes clockPulse { to { opacity: .55; } }
 @media (min-width: 800px) { .game { max-width: 940px; width: 100%; margin: auto; } .game-actions { border: 1px solid #303844; border-radius: 12px 12px 0 0; } .canvas-wrap { min-height: 400px; } }
 @media (max-height: 650px) and (orientation: landscape) { header { height: 55px; } .game { display: grid; grid-template-columns: 1fr 120px; grid-template-rows: 45px 1fr; } .status-card { grid-column: 1; margin: 3px auto; height: 40px; } .canvas-wrap { grid-row: 2; min-height: 190px; } .game-actions { grid-column: 2; grid-row: 1 / 3; grid-template-columns: 1fr; align-content: center; } .panel { margin: 8px auto; padding: 12px; } .panel fieldset { margin: 2px; } .panel label span { min-height: 52px; } }
